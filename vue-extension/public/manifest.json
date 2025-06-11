@@ -1,0 +1,11 @@
+{
+    "name": "Hello World",
+    "short_name": "Hello World",
+    "version": "1.0.0.0",
+    "description": "Hello World my very first extension",
+    "manifest_version": 3,
+    "action": {
+        "default_popup": "index.html",
+        "default_title": "Hello World Popup"
+    }
+}
