@@ -11,7 +11,7 @@ This extension toggles a sidebar on the right side of any webpage, with icons fo
 Unzip the downloaded folder or clone your project locally.
 
 ```
-right_panel_extension/
+webcammerplus/
 ├── manifest.json
 ├── background.js
 ├── toggle.js
@@ -22,34 +22,67 @@ right_panel_extension/
 ├── icon-yellow.png
 ├── icon-red.png
 ├── icon-blue.png
+├── vue-extension/           # Vue.js project for the extension UI
+│   ├── public/             # Public assets, including manifest.json
+│   │   └── manifest.json
+│   ├── src/                # Vue.js source code
+│   ├── .eslintrc.js        # ESLint configuration for JavaScript/Vue
+│   ├── .htmlhintrc         # HTMLHint configuration
+│   ├── .stylelintrc.json   # Stylelint configuration
+│   └── package.json        # Node.js dependencies and scripts
+└── ... other extension files
 ```
 
----
+### 2. Install Dependencies (for Vue.js development)
 
-### 2. Load into Chrome
+Navigate into the `vue-extension` directory and install the Node.js dependencies:
+
+```bash
+cd vue-extension
+npm install
+```
+
+### 3. Load into Chrome
 
 1. Open Chrome
 2. Navigate to `chrome://extensions`
 3. Enable **Developer Mode**
 4. Click **"Load unpacked"**
-5. Select the root folder of the extension (where `manifest.json` is located)
+5. Select the **`vue-extension/dist`** folder (this folder will be created after you run `npm run build` in the vue-extension directory, which is the next step to run your vue project) of the extension.
 
----
+### 4. Make Edits and Develop
 
-### 3. Make Edits
+To develop with Vue.js, navigate to the `vue-extension` directory and run the development server:
 
-Any changes you make to the files (e.g., `sidebar.html`, `sidebar.js`, `toggle.js`, etc.) will require:
-- A manual **refresh of the extension** in `chrome://extensions`
+```bash
+cd vue-extension
+npm run serve
+```
+
+Any changes you make to the files will require:
+- A manual **refresh of the extension** in `chrome://extensions` (after building for production)
 - A refresh of the tab where you're testing it
 
----
+### 5. Linting
 
-### 4. Test Functionality
+Navigate to the `vue-extension` directory and use the following commands:
 
-- Click the extension icon to toggle the sidebar.
-- Use the icon menu (🏠 💬 🌐 🛠️ ❓) to switch between tools.
-- Verify that `#main.chat_broadcast` and `#base` resize when the sidebar is active.
-- Open the Help tab for setup instructions.
+```bash
+# Run all linters
+npm run lint
+
+# Lint JavaScript and Vue files
+npm run lint:js
+
+# Lint HTML files
+npm run lint:html
+
+# Lint CSS files
+npm run lint:css
+
+# Fix linting issues (where possible)
+npm run lint:fix
+```
 
 ---
 
@@ -74,9 +107,14 @@ You may integrate this with connection health checks, API ping responses, or sta
 
 ## 📦 Packaging the Extension
 
-To package the extension for upload:
-1. Zip the entire directory (must include `manifest.json`)
-2. Upload to the Chrome Web Store Developer Dashboard
+To package the extension for upload, you'll typically build your Vue.js project first:
+
+```bash
+cd vue-extension
+npm run build
+```
+
+Then, zip the `dist` folder created within `vue-extension` (which contains the bundled extension code) and upload to the Chrome Web Store Developer Dashboard.
 
 ---
 

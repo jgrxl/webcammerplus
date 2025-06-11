@@ -1,0 +1,32 @@
+{
+  "name": "webcammerplus-extension",
+  "version": "1.0.0",
+  "description": "Right Panel Sidebar Chrome Extension built with Vue.js",
+  "main": "background.js",
+  "scripts": {
+    "lint": "npm run lint:js && npm run lint:html && npm run lint:css",
+    "lint:js": "eslint . --ext .js,.vue",
+    "lint:html": "htmlhint sidebar.html",
+    "lint:css": "stylelint sidebar.css",
+    "lint:fix": "npm run lint:js -- --fix && npm run lint:html -- --fix && npm run lint:css -- --fix"
+  },
+  "keywords": [
+    "chrome-extension",
+    "vue",
+    "javascript",
+    "html",
+    "css",
+    "linter"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.26.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "htmlhint": "^1.1.4",
+    "stylelint": "^15.11.0",
+    "stylelint-config-standard": "^34.0.0"
+  }
+} 

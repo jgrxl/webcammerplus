@@ -1,0 +1,47 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to list these manually.
+# ./.gradle
+# /build/
+# /dist/
+# /target/
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS and build tool generated files #
+#####################################
+.DS_Store
+Thumbs.db
+EHThumbs.db
+*.bak
+*.tmp
+*.swp
+*~.nib
+*.pmd
+.project
+.settings
+.vs/
+*.zip
+
+# Vue.js specific #
+###################
+/vue-extension/node_modules/
+/vue-extension/dist/
+
+# Linter caches #
+#################
+.eslintcache
+.stylelintcache 
