@@ -1,0 +1,12 @@
+{
+    "mappings" : {
+        "properties" : {
+            "uuid" : {"type": "text"},
+            "subscription_type": {"type": "text"},
+            "expiration_date": {"type": "date"},
+            "is_active": {"type" : "boolean"}
+    
+    
+        }
+    }        
+    }
