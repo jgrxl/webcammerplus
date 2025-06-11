@@ -1,205 +1,94 @@
-# WebCammerPlus Linter Suite
+# WebCammerPlus Chrome Extension (Vue.js)
 
-A comprehensive linter setup for Java, HTML, and CSS projects using industry-standard tools.
+This project is a Chrome Extension rewritten using Vue.js.
 
-## 🛠️ Tools Used
-
-- **Java**: [Checkstyle](https://checkstyle.org/) - Enforces coding standards and best practices
-- **HTML**: [HTMLHint](https://htmlhint.com/) - Validates HTML syntax and accessibility
-- **CSS**: [Stylelint](https://stylelint.io/) - Enforces CSS coding standards
-
-## 📋 Prerequisites
-
-- **Java**: JDK 8 or higher
-- **Node.js**: Version 14 or higher (for HTML and CSS linting)
-- **npm**: Comes with Node.js
-
-## 🚀 Quick Setup
-
-1. **Clone or download this project**
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-3. **Download Checkstyle**:
-   ```bash
-   npm run install:checkstyle
-   ```
-4. **Make the lint script executable**:
-   ```bash
-   chmod +x lint.sh
-   ```
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 WebCammerPlus/
-├── checkstyle.xml          # Checkstyle configuration for Java
-├── .htmlhintrc            # HTMLHint configuration for HTML
-├── .stylelintrc.json      # Stylelint configuration for CSS
-├── package.json           # Node.js dependencies and scripts
-├── lint.sh               # Main linting script
-├── README.md             # This file
-└── src/                  # Your source code directory
-    ├── *.java            # Java files
-    ├── *.html            # HTML files
-    └── *.css             # CSS files
+├── vue-extension/          # Vue.js project for the Chrome Extension
+│   ├── public/             # Contains manifest.json and other static assets
+│   ├── src/                # Vue.js source code
+│   ├── .eslintrc.json      # ESLint configuration for JavaScript/Vue
+│   ├── .htmlhintrc         # HTMLHint configuration
+│   ├── .stylelintrc.json   # Stylelint configuration for CSS
+│   ├── package.json        # Node.js dependencies and scripts
+│   ├── package-lock.json   # Dependency lock file
+│   └── ...                 # Other Vue CLI generated files
+├── .github/                # GitHub Actions workflows
+├── .gitignore              # Git ignore file
+├── README.md               # This file
+└── ...                     # Other project files
 ```
 
-## 🎯 Usage
+## Setup and Development
 
-### Run All Linters
+### Prerequisites
+
+-   **Node.js**: Version 14 or higher
+-   **npm**: Comes with Node.js
+-   **Vue CLI**: If you plan to develop directly within `vue-extension` (installed globally: `npm install -g @vue/cli`)
+
+### Installation
+
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/jovanrlee/webcammerplus.git
+    cd webcammerplus
+    ```
+2.  **Navigate into the Vue.js project**:
+    ```bash
+    cd vue-extension
+    ```
+3.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+### Running the Development Server
+
+While in the `vue-extension` directory:
 ```bash
-./lint.sh
+npm run serve
 ```
+This will start a development server. The extension will not be directly usable in Chrome this way, but it's useful for developing Vue components.
 
-### Run Individual Linters
+### Building for Production
 
-#### Java (Checkstyle)
+While in the `vue-extension` directory:
 ```bash
-npm run lint:java
+npm run build
 ```
+This will compile the Vue.js application into the `vue-extension/dist` directory.
 
-#### HTML (HTMLHint)
+### Loading the Extension in Chrome
+
+1.  Open Chrome and navigate to `chrome://extensions/`.
+2.  Enable "Developer mode" (top right corner).
+3.  Click "Load unpacked" and select the `vue-extension/dist` directory.
+
+### Linting
+
+While in the `vue-extension` directory:
 ```bash
-npm run lint:html
+npm run lint
 ```
+This will run ESLint for JavaScript/Vue, HTMLHint for HTML, and Stylelint for CSS.
 
-#### CSS (Stylelint)
+### Auto-fix Linting Issues
+
+Some linting issues can be automatically fixed:
 ```bash
-npm run lint:css
+npm run lint -- --fix
 ```
 
-### Auto-fix Issues
+## Contributing
 
-#### CSS (Stylelint)
-```bash
-npm run lint:fix:css
-```
-
-#### HTML (HTMLHint)
-```bash
-npm run lint:fix:html
-```
-
-## ⚙️ Configuration
-
-### Java (Checkstyle)
-The `checkstyle.xml` file is configured with:
-- Google Java Style Guide compliance
-- Naming conventions
-- Import organization
-- Code formatting rules
-- Best practices enforcement
-
-### HTML (HTMLHint)
-The `.htmlhintrc` file includes:
-- HTML5 validation
-- Accessibility checks
-- Semantic HTML requirements
-- Attribute ordering
-- Code formatting
-
-### CSS (Stylelint)
-The `.stylelintrc.json` file enforces:
-- Standard CSS formatting
-- Best practices
-- Consistent naming conventions
-- Accessibility considerations
-- Modern CSS standards
-
-## 🔧 Customization
-
-### Modify Java Rules
-Edit `checkstyle.xml` to adjust Java linting rules. Refer to the [Checkstyle documentation](https://checkstyle.org/checks.html) for available rules.
-
-### Modify HTML Rules
-Edit `.htmlhintrc` to customize HTML validation. See [HTMLHint rules](https://htmlhint.com/docs/user-guide/rules) for options.
-
-### Modify CSS Rules
-Edit `.stylelintrc.json` to adjust CSS linting. Check [Stylelint rules](https://stylelint.io/user-guide/rules) for available options.
-
-## 📝 Example Usage
-
-### Sample Java File
-```java
-// src/Example.java
-package com.example;
-
-import java.util.List;
-import java.util.ArrayList;
-
-public class Example {
-    private static final String CONSTANT = "value";
-    
-    public void method() {
-        List<String> list = new ArrayList<>();
-        // Your code here
-    }
-}
-```
-
-### Sample HTML File
-```html
-<!-- src/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Example Page</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <main>
-        <h1>Hello World</h1>
-        <p>This is a sample HTML file.</p>
-    </main>
-</body>
-</html>
-```
-
-### Sample CSS File
-```css
-/* src/styles.css */
-.example {
-    color: #333;
-    font-size: 16px;
-    margin: 0;
-    padding: 1rem;
-}
-
-.example:hover {
-    color: #666;
-}
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **Java not found**: Ensure Java is installed and in your PATH
-2. **Node.js not found**: Install Node.js from [nodejs.org](https://nodejs.org/)
-3. **Permission denied**: Make sure `lint.sh` is executable: `chmod +x lint.sh`
-4. **Checkstyle JAR missing**: Run `npm run install:checkstyle`
-
-### Getting Help
-
-- [Checkstyle Documentation](https://checkstyle.org/)
-- [HTMLHint Documentation](https://htmlhint.com/)
-- [Stylelint Documentation](https://stylelint.io/)
-
-## 📄 License
-
-MIT License - feel free to use and modify as needed.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with the linters
-5. Submit a pull request
+1.  Fork the repository.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'feat: Add some amazing feature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
 
 ---
 
