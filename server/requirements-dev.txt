@@ -1,0 +1,22 @@
+# Development dependencies for Python linting and code quality
+# Install with: pip install -r requirements-dev.txt
+
+# Core linting tools
+flake8>=6.0.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.5.0
+pylint>=2.17.0
+
+# Additional code quality tools
+bandit>=1.7.5
+safety>=2.3.0
+pre-commit>=3.3.0
+
+# Type checking dependencies
+types-requests>=2.31.0
+types-PyYAML>=6.0.12
+
+# Testing (optional but recommended)
+pytest>=7.4.0
+pytest-cov>=4.1.0 

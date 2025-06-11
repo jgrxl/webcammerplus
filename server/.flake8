@@ -1,0 +1,39 @@
+[flake8]
+# Maximum line length
+max-line-length = 88
+
+# Ignore specific errors and warnings
+ignore = 
+    # Line break before binary operator (handled by black)
+    W503,
+    # Line break after binary operator (handled by black)
+    W504,
+    # Module level import not at top of file (handled by isort)
+    E402,
+    # Do not assign a lambda expression, use a def (sometimes needed)
+    E731,
+    # Redefining name from outer scope (sometimes needed for clarity)
+    W0621
+
+# Exclude directories and files
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .env,
+    build,
+    dist,
+    *.egg-info,
+    .pytest_cache,
+    .mypy_cache
+
+# Show source code for each error
+show-source = True
+
+# Show statistics
+statistics = True
+
+# Count errors and warnings
+count = True 
