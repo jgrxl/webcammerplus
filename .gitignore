@@ -1,0 +1,56 @@
+# Node.js
+vue-extension/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.venv
+env/
+venv/
+.Python
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+logs/
+*.out
+
+# OS & IDE settings
+.vscode/
+.idea/
+*.swp
+
+# Compiled files
+*.class
+*.o
+*.so
+*.dll
+*.exe
+
+# Build directories
+dist/
+build/
+out/
+
+# Coverage
+coverage/
+*.lcov
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Git
+.git/
+.gitign
