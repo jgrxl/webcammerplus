@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # WebCammerPlus Linter Script
-# This script runs all linters for Java, HTML, and CSS
+# This script runs all linters for JavaScript, HTML, and CSS
 
 set -e
 
@@ -31,13 +31,6 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if Checkstyle JAR exists
-if [ ! -f "checkstyle.jar" ]; then
-    print_warning "Checkstyle JAR not found. Downloading..."
-    curl -L https://github.com/checkstyle/checkstyle/releases/download/checkstyle-10.12.5/checkstyle-10.12.5-all.jar -o checkstyle.jar
-    print_success "Checkstyle downloaded successfully"
-fi
-
 # Check if source directory exists
 if [ ! -d "src" ]; then
     print_warning "Source directory 'src' not found. Creating..."
@@ -45,18 +38,23 @@ if [ ! -d "src" ]; then
     print_success "Source directory created"
 fi
 
-# Function to run Java linting with Checkstyle
-lint_java() {
-    print_status "Running Java linting with Checkstyle..."
+# Function to run JavaScript linting with ESLint
+lint_js() {
+    print_status "Running JavaScript linting with ESLint..."
     
-    if [ -d "src" ] && [ "$(find src -name "*.java" -type f)" ]; then
-        java -jar checkstyle.jar -c checkstyle.xml src/ || {
-            print_error "Java linting failed"
-            return 1
-        }
-        print_success "Java linting completed"
+    if command -v npx &> /dev/null; then
+        if [ -d "src" ] && [ "$(find src -name "*.js" -type f)" ]; then
+            npx eslint src/**/*.js || {
+                print_error "JavaScript linting failed"
+                return 1
+            }
+            print_success "JavaScript linting completed"
+        else
+            print_warning "No JavaScript files found in src directory"
+        fi
     else
-        print_warning "No Java files found in src directory"
+        print_error "npx not found. Please install Node.js and npm"
+        return 1
     fi
 }
 
@@ -105,7 +103,7 @@ main() {
     local exit_code=0
     
     # Run all linters
-    lint_java || exit_code=$((exit_code + 1))
+    lint_js || exit_code=$((exit_code + 1))
     lint_html || exit_code=$((exit_code + 1))
     lint_css || exit_code=$((exit_code + 1))
     

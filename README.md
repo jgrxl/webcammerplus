@@ -1,17 +1,16 @@
 # WebCammerPlus Linter Suite
 
-A comprehensive linter setup for Java, HTML, and CSS projects using industry-standard tools.
+A comprehensive linter setup for JavaScript, HTML, and CSS projects using industry-standard tools.
 
 ## 🛠️ Tools Used
 
-- **Java**: [Checkstyle](https://checkstyle.org/) - Enforces coding standards and best practices
+- **JavaScript**: [ESLint](https://eslint.org/) - Enforces coding standards and best practices
 - **HTML**: [HTMLHint](https://htmlhint.com/) - Validates HTML syntax and accessibility
 - **CSS**: [Stylelint](https://stylelint.io/) - Enforces CSS coding standards
 
 ## 📋 Prerequisites
 
-- **Java**: JDK 8 or higher
-- **Node.js**: Version 14 or higher (for HTML and CSS linting)
+- **Node.js**: Version 14 or higher
 - **npm**: Comes with Node.js
 
 ## 🚀 Quick Setup
@@ -21,11 +20,7 @@ A comprehensive linter setup for Java, HTML, and CSS projects using industry-sta
    ```bash
    npm install
    ```
-3. **Download Checkstyle**:
-   ```bash
-   npm run install:checkstyle
-   ```
-4. **Make the lint script executable**:
+3. **Make the lint script executable**:
    ```bash
    chmod +x lint.sh
    ```
@@ -34,16 +29,16 @@ A comprehensive linter setup for Java, HTML, and CSS projects using industry-sta
 
 ```
 WebCammerPlus/
-├── checkstyle.xml          # Checkstyle configuration for Java
-├── .htmlhintrc            # HTMLHint configuration for HTML
-├── .stylelintrc.json      # Stylelint configuration for CSS
-├── package.json           # Node.js dependencies and scripts
-├── lint.sh               # Main linting script
-├── README.md             # This file
-└── src/                  # Your source code directory
-    ├── *.java            # Java files
-    ├── *.html            # HTML files
-    └── *.css             # CSS files
+├── .eslintrc.json        # ESLint configuration for JavaScript
+├── .htmlhintrc          # HTMLHint configuration for HTML
+├── .stylelintrc.json    # Stylelint configuration for CSS
+├── package.json         # Node.js dependencies and scripts
+├── lint.sh             # Main linting script
+├── README.md           # This file
+└── src/                # Your source code directory
+    ├── *.js            # JavaScript files
+    ├── *.html          # HTML files
+    └── *.css           # CSS files
 ```
 
 ## 🎯 Usage
@@ -55,9 +50,9 @@ WebCammerPlus/
 
 ### Run Individual Linters
 
-#### Java (Checkstyle)
+#### JavaScript (ESLint)
 ```bash
-npm run lint:java
+npm run lint:js
 ```
 
 #### HTML (HTMLHint)
@@ -72,6 +67,11 @@ npm run lint:css
 
 ### Auto-fix Issues
 
+#### JavaScript (ESLint)
+```bash
+npm run lint:fix:js
+```
+
 #### CSS (Stylelint)
 ```bash
 npm run lint:fix:css
@@ -84,13 +84,13 @@ npm run lint:fix:html
 
 ## ⚙️ Configuration
 
-### Java (Checkstyle)
-The `checkstyle.xml` file is configured with:
-- Google Java Style Guide compliance
-- Naming conventions
-- Import organization
-- Code formatting rules
+### JavaScript (ESLint)
+The `.eslintrc.json` file is configured with:
+- Standard JavaScript Style Guide
+- Modern ES6+ features support
 - Best practices enforcement
+- Code formatting rules
+- Common error prevention
 
 ### HTML (HTMLHint)
 The `.htmlhintrc` file includes:
@@ -110,8 +110,8 @@ The `.stylelintrc.json` file enforces:
 
 ## 🔧 Customization
 
-### Modify Java Rules
-Edit `checkstyle.xml` to adjust Java linting rules. Refer to the [Checkstyle documentation](https://checkstyle.org/checks.html) for available rules.
+### Modify JavaScript Rules
+Edit `.eslintrc.json` to adjust JavaScript linting rules. Refer to the [ESLint documentation](https://eslint.org/docs/rules/) for available rules.
 
 ### Modify HTML Rules
 Edit `.htmlhintrc` to customize HTML validation. See [HTMLHint rules](https://htmlhint.com/docs/user-guide/rules) for options.
@@ -121,22 +121,49 @@ Edit `.stylelintrc.json` to adjust CSS linting. Check [Stylelint rules](https://
 
 ## 📝 Example Usage
 
-### Sample Java File
-```java
-// src/Example.java
-package com.example;
+### Sample JavaScript File
+```javascript
+// src/example.js
+const exampleFunction = (param) => {
+  const result = param * 2;
+  return result;
+};
 
-import java.util.List;
-import java.util.ArrayList;
+class ExampleClass {
+  constructor(name) {
+    this.name = name;
+    this.count = 0;
+  }
 
-public class Example {
-    private static final String CONSTANT = "value";
-    
-    public void method() {
-        List<String> list = new ArrayList<>();
-        // Your code here
-    }
+  increment() {
+    this.count += 1;
+    return this.count;
+  }
+
+  getName() {
+    return this.name;
+  }
 }
+
+// Array methods
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map(num => num * 2);
+const sum = numbers.reduce((acc, num) => acc + num, 0);
+
+// Object destructuring
+const user = {
+  firstName: 'John',
+  lastName: 'Doe',
+  age: 30
+};
+
+const { firstName, lastName } = user;
+
+// Template literals
+const greeting = `Hello, ${firstName} ${lastName}!`;
+
+// Export for module usage
+export { exampleFunction, ExampleClass, greeting };
 ```
 
 ### Sample HTML File
@@ -178,14 +205,13 @@ public class Example {
 
 ### Common Issues
 
-1. **Java not found**: Ensure Java is installed and in your PATH
-2. **Node.js not found**: Install Node.js from [nodejs.org](https://nodejs.org/)
-3. **Permission denied**: Make sure `lint.sh` is executable: `chmod +x lint.sh`
-4. **Checkstyle JAR missing**: Run `npm run install:checkstyle`
+1. **Node.js not found**: Install Node.js from [nodejs.org](https://nodejs.org/)
+2. **Permission denied**: Make sure `lint.sh` is executable: `chmod +x lint.sh`
+3. **ESLint not found**: Run `npm install` to install dependencies
 
 ### Getting Help
 
-- [Checkstyle Documentation](https://checkstyle.org/)
+- [ESLint Documentation](https://eslint.org/)
 - [HTMLHint Documentation](https://htmlhint.com/)
 - [Stylelint Documentation](https://stylelint.io/)
 

@@ -1,18 +1,23 @@
 {
   "name": "webcammerplus-linter",
   "version": "1.0.0",
-  "description": "Linter setup for Java, HTML, and CSS",
+  "description": "Linter setup for JavaScript, HTML, and CSS",
   "scripts": {
-    "lint:java": "checkstyle -c checkstyle.xml src/",
+    "lint:js": "eslint src/**/*.js",
     "lint:html": "htmlhint src/**/*.html",
     "lint:css": "stylelint src/**/*.css",
-    "lint:all": "npm run lint:java && npm run lint:html && npm run lint:css",
+    "lint:all": "npm run lint:js && npm run lint:html && npm run lint:css",
+    "lint:fix:js": "eslint src/**/*.js --fix",
     "lint:fix:css": "stylelint src/**/*.css --fix",
     "lint:fix:html": "htmlhint src/**/*.html --fix",
-    "install:checkstyle": "curl -L https://github.com/checkstyle/checkstyle/releases/download/checkstyle-10.12.5/checkstyle-10.12.5-all.jar -o checkstyle.jar",
-    "setup": "npm install && npm run install:checkstyle"
+    "setup": "npm install"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.1.1",
     "htmlhint": "^1.1.4",
     "stylelint": "^15.11.0",
     "stylelint-config-standard": "^34.0.0",
@@ -20,10 +25,10 @@
   },
   "keywords": [
     "linter",
-    "java",
+    "javascript",
     "html",
     "css",
-    "checkstyle",
+    "eslint",
     "htmlhint",
     "stylelint"
   ],
