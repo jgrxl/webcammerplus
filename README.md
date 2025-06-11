@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Right Panel Sidebar Chrome Extension
 
 This extension toggles a sidebar on the right side of any webpage, with icons for different tools like replying, translating, admin chat, and help/FAQ. It also modifies parts of the main page (e.g., #main and #base divs) and supports a colored icon indicator to show connection state (green, red, yellow, blue).
@@ -94,3 +95,6 @@ This can be updated in `sidebar.html` as needed.
 
 Contact your development lead or open issues in your version control repository if something is broken or needs improvement.
 
+=======
+# webcammerplus
+>>>>>>> 6ee5a9b (Initial commit)
