@@ -1,13 +1,13 @@
 <template>
-    <div class="settings-page">
-      <h1>Settings</h1>
+    <div class="account-page">
+      <h1>adasds</h1>
       <!-- your settings controls go here -->
     </div>
   </template>
   
   <script>
   export default {
-    name: 'AppSettings'
+    name: 'AppAccount'
   }
   </script>
   
