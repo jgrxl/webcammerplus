@@ -14,7 +14,7 @@ safety>=2.3.0
 pre-commit>=3.3.0
 
 # Type checking dependencies
-types-requests>=2.31.0
+types-requests>=2.31.0,<2.32.4
 types-PyYAML>=6.0.12
 
 # Testing (optional but recommended)
