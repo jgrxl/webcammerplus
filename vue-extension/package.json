@@ -23,16 +23,21 @@
   "eslintConfig": {
     "root": true,
     "env": {
-      "node": true
+      "node": true,
+      "es6": true
     },
     "extends": [
       "plugin:vue/vue3-essential",
       "eslint:recommended"
     ],
     "parserOptions": {
-      "parser": "@babel/eslint-parser"
+      "parser": "@babel/eslint-parser",
+      "ecmaVersion": 2020,
+      "sourceType": "module"
     },
-    "rules": {}
+    "rules": {
+      "vue/require-default-prop": "warn"
+    }
   },
   "browserslist": [
     "> 1%",
