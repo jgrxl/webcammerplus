@@ -1,16 +1,42 @@
-from flask import Blueprint, request, jsonify
-from client.es_client import es     # ← this now exists
-bp = Blueprint("api", __name__)
+# server/routes/translate.py
+from dataclasses import dataclass, asdict
+from flask import Blueprint, request, jsonify, abort
+from typing import Optional
 
-@bp.route("/<index_name>/document", methods=["POST"])
-def add_document(index_name):
-    doc = request.get_json(force=True)
-    res = es.index(index=index_name, body=doc)
-    return jsonify(res)
+bp = Blueprint("translate", __name__, url_prefix="/translate")
 
-@bp.route("/<index_name>/search")
-def search(index_name):
-    q = request.args.get("q","")
-    body = {"query": {"multi_match": {"query": q, "fields": ["*"]}}}
-    res = es.search(index=index_name, body=body)
-    return jsonify(res["hits"])
+@dataclass
+class TranslateRequest:
+    text: str
+    to_lang: str
+
+@dataclass
+class TranslateResponse:
+    success: bool
+    translation: str
+
+# private translator stub
+def _translate(text: str, to_lang: str) -> str:
+    """
+    Stub translation function: always returns the same text.
+    """
+    return text  # or replace with any static string
+
+@bp.route("/", methods=["POST"])
+def translate_text():
+    payload = request.get_json(force=True) or {}
+    # Validate required fields
+    if "text" not in payload or "to_lang" not in payload:
+        abort(400, description="Both 'text' and 'to_lang' fields are required.")
+
+    # Build request object
+    try:
+        req = TranslateRequest(**payload)
+    except TypeError as e:
+        abort(400, description=str(e))
+
+    # Perform translation via private stub
+    translated = _translate(req.text, req.to_lang)
+
+    out = TranslateResponse(success=True, translation=translated)
+    return jsonify(asdict(out)), 200
