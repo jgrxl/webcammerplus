@@ -1,0 +1,14 @@
+{
+"mappings" : {
+    "properties" : {
+        "email": { "type": "text"},
+        "nickname" : {"type": "text"},
+        "uuid" : {"type": "text"},
+        "newsletter" : {"type": "boolean"}
+
+
+    }
+}
+
+    
+}
