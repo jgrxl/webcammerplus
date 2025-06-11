@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Right Panel Sidebar",
+  "version": "1.3",
+  "description": "Toggles a sidebar panel with menu, help, and connection indicator.",
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Toggle Sidebar",
+    "default_icon": {
+      "16": "icon-green.png",
+      "32": "icon-green.png",
+      "48": "icon-green.png",
+      "128": "icon-green.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["sidebar.html", "sidebar.css", "icon-*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
