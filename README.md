@@ -93,3 +93,45 @@ npm run lint -- --fix
 ---
 
 **Happy coding! 🎉**
+
+## 🎨 Icon Status Indicator
+
+This extension includes 4 dot-style icons:
+
+- `icon-green.png`
+- `icon-yellow.png`
+- `icon-red.png`
+- `icon-blue.png`
+
+You can dynamically change the icon via the background script using:
+
+```js
+chrome.action.setIcon({ path: "icon-red.png" });
+```
+
+You may integrate this with connection health checks, API ping responses, or status of a third-party app.
+
+## 📦 Packaging the Extension
+
+To package the extension for upload, you'll typically build your Vue.js project first:
+
+```bash
+cd vue-extension
+npm run build
+```
+
+Then, zip the `dist` folder created within `vue-extension` (which contains the bundled extension code) and upload to the Chrome Web Store Developer Dashboard.
+
+---
+
+## 📘 Help Tab
+
+The Help tab in the sidebar shows setup instructions for users:
+
+> Settings → Privacy → Copy the Events API JSON Feed URL and paste it into this tool.
+
+This can be updated in `sidebar.html` as needed.
+
+## ❓ Need Help?
+
+Contact your development lead or open issues in your version control repository if something is broken or needs improvement. 
