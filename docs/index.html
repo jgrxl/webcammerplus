@@ -1,9 +1,283 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Example</title>
-    </head>
-    <body>
-        <p>This is an example of a simple HTML page with one paragraph.</p>
-    </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebCammerPlus - Professional Webcam Recording</title>
+    <meta name="description" content="WebCammerPlus is a powerful Chrome extension for professional webcam recording, video editing, and secure cloud storage.">
+    <meta name="keywords" content="webcam, recording, chrome extension, video editor, cloud storage, screen capture, privacy, security">
+    <meta name="author" content="WebCammerPlus Team">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://jovanrlee.github.io/webcammerplus/">
+    <meta property="og:title" content="WebCammerPlus - Professional Webcam Recording">
+    <meta property="og:description" content="WebCammerPlus is a powerful Chrome extension for professional webcam recording, video editing, and secure cloud storage.">
+    <meta property="og:image" content="https://jovanrlee.github.io/webcammerplus/assets/extension-preview.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://jovanrlee.github.io/webcammerplus/">
+    <meta property="twitter:title" content="WebCammerPlus - Professional Webcam Recording">
+    <meta property="twitter:description" content="WebCammerPlus is a powerful Chrome extension for professional webcam recording, video editing, and secure cloud storage.">
+    <meta property="twitter:image" content="https://jovanrlee.github.io/webcammerplus/assets/extension-preview.png">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="assets/logo.svg" alt="WebCammerPlus Logo" class="logo">
+                <span class="logo-text">WebCammerPlus</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#features" class="nav-link">Features</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#download" class="nav-link">Download</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#pricing" class="nav-link">Pricing</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#support" class="nav-link">Support</a>
+                </li>
+                <li class="nav-item">
+                    <a href="privacy.html" class="nav-link">Privacy</a>
+                </li>
+                <li class="nav-item">
+                    <a href="terms.html" class="nav-link">Terms</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">Elevate Your <span class="highlight">Webcam Experience</span> with WebCammerPlus</h1>
+                <p class="hero-description">The ultimate Chrome extension for seamless webcam recording, intuitive video editing, and secure cloud storage. Perfect for professionals, educators, and content creators.</p>
+                <div class="hero-buttons">
+                    <a href="#download" class="btn btn-primary btn-large">Download Extension <i class="fas fa-download"></i></a>
+                    <a href="#features" class="btn btn-secondary btn-large">Learn More <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">10K+</span>
+                        <span class="stat-label">Happy Users</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">4.9★</span>
+                        <span class="stat-label">Average Rating</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">500+</span>
+                        <span class="stat-label">Features</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img data-src="assets/extension-preview.png" alt="WebCammerPlus Extension Preview" class="extension-preview lazy">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="fas fa-video feature-icon"></i>
+                    <h3>High-Quality Recording</h3>
+                    <p>Capture crystal-clear video and audio directly from your webcam with various resolution options.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-edit feature-icon"></i>
+                    <h3>Intuitive Video Editor</h3>
+                    <p>Trim, cut, merge, and enhance your recordings with our easy-to-use built-in editor. No software needed!</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-cloud-upload-alt feature-icon"></i>
+                    <h3>Secure Cloud Storage</h3>
+                    <p>Safely store your recordings in the cloud with end-to-end encryption and easy access from anywhere.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-share-alt feature-icon"></i>
+                    <h3>Effortless Sharing</h3>
+                    <p>Share your videos directly to social media, email, or generate shareable links with custom privacy settings.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-layer-group feature-icon"></i>
+                    <h3>Multiple Layouts</h3>
+                    <p>Choose from various recording layouts including picture-in-picture, side-by-side, and full screen.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-cogs feature-icon"></i>
+                    <h3>Advanced Settings</h3>
+                    <p>Customize frame rates, codecs, audio sources, and more for complete control over your recordings.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container download-content">
+            <div class="download-info">
+                <h3>Get Started with WebCammerPlus Today!</h3>
+                <p>Install our Chrome extension in minutes and start creating amazing content. It's free to get started!</p>
+                <ol class="download-steps">
+                    <li>1. Click the "Add to Chrome" button below.</li>
+                    <li>2. Confirm the installation in the Chrome Web Store.</li>
+                    <li>3. Pin the WebCammerPlus icon to your browser toolbar.</li>
+                    <li>4. Start recording and unleash your creativity!</li>
+                </ol>
+                <a href="https://chrome.google.com/webstore/detail/your-extension-id" class="btn btn-primary btn-large" target="_blank" rel="noopener noreferrer">Add to Chrome <i class="fab fa-chrome"></i></a>
+                <p class="download-note">*Requires Google Chrome browser.</p>
+            </div>
+            <div class="download-image">
+                <img data-src="assets/install-preview.png" alt="WebCammerPlus Installation Guide" class="install-image lazy">
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <h2 class="section-title">Flexible Pricing Plans</h2>
+            <div class="pricing-grid">
+                <!-- Free Plan -->
+                <div class="pricing-card">
+                    <h3>Free Plan</h3>
+                    <div class="price">$0<span class="price-period">/month</span></div>
+                    <p class="price-period">Perfect for casual users and beginners.</p>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check-circle"></i> Basic webcam recording</li>
+                        <li><i class="fas fa-check-circle"></i> Local storage only</li>
+                        <li><i class="fas fa-check-circle"></i> Standard video quality</li>
+                        <li><i class="fas fa-times-circle"></i> Limited editing tools</li>
+                        <li><i class="fas fa-times-circle"></i> No cloud synchronization</li>
+                        <li><i class="fas fa-times-circle"></i> Standard customer support</li>
+                    </ul>
+                    <a href="#download" class="btn btn-secondary">Get Started Free</a>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="pricing-card featured">
+                    <span class="featured-badge">Most Popular</span>
+                    <h3>Pro Plan</h3>
+                    <div class="price">$9<span class="price-period">/month</span></div>
+                    <p class="price-period">Ideal for content creators and educators.</p>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check-circle"></i> HD webcam recording</li>
+                        <li><i class="fas fa-check-circle"></i> 100 GB cloud storage</li>
+                        <li><i class="fas fa-check-circle"></i> Advanced editing suite</li>
+                        <li><i class="fas fa-check-circle"></i> Cloud synchronization</li>
+                        <li><i class="fas fa-check-circle"></i> Priority email support</li>
+                        <li><i class="fas fa-check-circle"></i> No watermarks</li>
+                    </ul>
+                    <a href="#download" class="btn btn-primary">Choose Pro Plan</a>
+                </div>
+
+                <!-- Business Plan -->
+                <div class="pricing-card">
+                    <h3>Business Plan</h3>
+                    <div class="price">$29<span class="price-period">/month</span></div>
+                    <p class="price-period">For teams and professional organizations.</p>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check-circle"></i> 4K webcam recording</li>
+                        <li><i class="fas fa-check-circle"></i> Unlimited cloud storage</li>
+                        <li><i class="fas fa-check-circle"></i> Full editing capabilities</li>
+                        <li><i class="fas fa-check-circle"></i> Team collaboration features</li>
+                        <li><i class="fas fa-check-circle"></i> Dedicated account manager</li>
+                        <li><i class="fas fa-check-circle"></i> Custom branding</li>
+                    </ul>
+                    <a href="#download" class="btn btn-secondary">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section id="support" class="support">
+        <div class="container">
+            <h2 class="section-title">Need Help? We're Here!</h2>
+            <div class="support-grid">
+                <div class="support-card">
+                    <h3>Knowledge Base</h3>
+                    <p>Find answers to common questions and detailed guides in our comprehensive knowledge base.</p>
+                    <a href="#" class="support-link">Browse Articles <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div class="support-card">
+                    <h3>Contact Support</h3>
+                    <p>Our support team is ready to assist you. Reach out via email for personalized help.</p>
+                    <a href="mailto:support@webcammerplus.com" class="support-link">Email Us <i class="fas fa-envelope"></i></a>
+                </div>
+                <div class="support-card">
+                    <h3>Community Forum</h3>
+                    <p>Join our community to discuss features, share tips, and get help from other users.</p>
+                    <a href="#" class="support-link">Join Forum <i class="fas fa-users"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="assets/logo.svg" alt="WebCammerPlus Logo" class="logo">
+                        <span class="logo-text">WebCammerPlus</span>
+                    </div>
+                    <p>Professional webcam recording made simple and secure.</p>
+                    <div class="social-links">
+                        <a href="https://github.com/jovanrlee/webcammerplus" target="_blank" rel="noopener noreferrer"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#download">Download</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">Security</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 WebCammerPlus. All rights reserved.</p>
+                <p>Designed and Developed by WebCammerPlus Team</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
 </html>
