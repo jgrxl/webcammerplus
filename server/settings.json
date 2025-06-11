@@ -1,0 +1,14 @@
+{
+    // make sure pytest is enabled
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["."],
+  
+    // absolute path to your venv’s pytest
+    // (this helps VS Code launch the right one)
+    "python.testing.pytestPath": "/Users/jovanlee/Documents/webcammer+/server/.venv/bin/pytest",
+  
+    // tell VS Code this is the interpreter to use
+    "python.defaultInterpreterPath": "/Users/jovanlee/Documents/webcammer+/server/.venv/bin/python3"
+  }
+  
