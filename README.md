@@ -1,232 +1,75 @@
-# WebCammerPlus Linter Suite
+# WebCammerPlus Chrome Extension
 
-A comprehensive linter setup for JavaScript, HTML, and CSS projects using industry-standard tools.
+This repository contains the WebCammerPlus Chrome Extension.
 
-## 🛠️ Tools Used
+## 🛠️ Local Development Setup
 
-- **JavaScript**: [ESLint](https://eslint.org/) - Enforces coding standards and best practices
-- **HTML**: [HTMLHint](https://htmlhint.com/) - Validates HTML syntax and accessibility
-- **CSS**: [Stylelint](https://stylelint.io/) - Enforces CSS coding standards
+### 1. Clone or Download the Extension
 
-## 📋 Prerequisites
-
-- **Node.js**: Version 14 or higher
-- **npm**: Comes with Node.js
-
-## 🚀 Quick Setup
-
-1. **Clone or download this project**
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-3. **Make the lint script executable**:
-   ```bash
-   chmod +x lint.sh
-   ```
-
-## 📁 Project Structure
+Clone this project locally or download the zipped folder.
 
 ```
-WebCammerPlus/
+webcammerplus/
+├── manifest.json
+├── background.js
+├── toggle.js
+├── sidebar.html
+├── sidebar.js
+├── sidebar.css
+├── icon-green.png
+├── icon-yellow.png
+├── icon-red.png
+├── icon-blue.png
 ├── .eslintrc.json        # ESLint configuration for JavaScript
 ├── .htmlhintrc          # HTMLHint configuration for HTML
-├── .stylelintrc.json    # Stylelint configuration for CSS
-├── package.json         # Node.js dependencies and scripts
-├── lint.sh             # Main linting script
-├── README.md           # This file
-└── src/                # Your source code directory
-    ├── *.js            # JavaScript files
-    ├── *.html          # HTML files
-    └── *.css           # CSS files
+└── .stylelintrc.json    # Stylelint configuration for CSS
 ```
 
-## 🎯 Usage
+### 2. Load into Chrome
 
-### Run All Linters
-```bash
-./lint.sh
+1.  Open Chrome
+2.  Navigate to `chrome://extensions`
+3.  Enable **Developer Mode**
+4.  Click **"Load unpacked"**
+5.  Select the root folder of the extension (where `manifest.json` is located)
+
+### 3. Make Edits
+
+Any changes you make to the files (e.g., `sidebar.html`, `sidebar.js`, `toggle.js`, etc.) will require:
+- A manual **refresh of the extension** in `chrome://extensions`
+- A refresh of the tab where you're testing it
+
+## 🎨 Icon Status Indicator
+
+This extension includes 4 dot-style icons:
+
+- `icon-green.png`
+- `icon-yellow.png`
+- `icon-red.png`
+- `icon-blue.png`
+
+You can dynamically change the icon via the background script using:
+
+```js
+chrome.action.setIcon({ path: "icon-red.png" });
 ```
 
-### Run Individual Linters
+You may integrate this with connection health checks, API ping responses, or status of a third-party app.
 
-#### JavaScript (ESLint)
-```bash
-npm run lint:js
-```
+## 📦 Packaging the Extension
 
-#### HTML (HTMLHint)
-```bash
-npm run lint:html
-```
+To package the extension for upload:
+1.  Zip the entire directory (must include `manifest.json`)
+2.  Upload to the Chrome Web Store Developer Dashboard
 
-#### CSS (Stylelint)
-```bash
-npm run lint:css
-```
+## 📘 Help Tab
 
-### Auto-fix Issues
+The Help tab in the sidebar shows setup instructions for users:
 
-#### JavaScript (ESLint)
-```bash
-npm run lint:fix:js
-```
+> Settings → Privacy → Copy the Events API JSON Feed URL and paste it into this tool.
 
-#### CSS (Stylelint)
-```bash
-npm run lint:fix:css
-```
+This can be updated in `sidebar.html` as needed.
 
-#### HTML (HTMLHint)
-```bash
-npm run lint:fix:html
-```
+## ❓ Need Help?
 
-## ⚙️ Configuration
-
-### JavaScript (ESLint)
-The `.eslintrc.json` file is configured with:
-- Standard JavaScript Style Guide
-- Modern ES6+ features support
-- Best practices enforcement
-- Code formatting rules
-- Common error prevention
-
-### HTML (HTMLHint)
-The `.htmlhintrc` file includes:
-- HTML5 validation
-- Accessibility checks
-- Semantic HTML requirements
-- Attribute ordering
-- Code formatting
-
-### CSS (Stylelint)
-The `.stylelintrc.json` file enforces:
-- Standard CSS formatting
-- Best practices
-- Consistent naming conventions
-- Accessibility considerations
-- Modern CSS standards
-
-## 🔧 Customization
-
-### Modify JavaScript Rules
-Edit `.eslintrc.json` to adjust JavaScript linting rules. Refer to the [ESLint documentation](https://eslint.org/docs/rules/) for available rules.
-
-### Modify HTML Rules
-Edit `.htmlhintrc` to customize HTML validation. See [HTMLHint rules](https://htmlhint.com/docs/user-guide/rules) for options.
-
-### Modify CSS Rules
-Edit `.stylelintrc.json` to adjust CSS linting. Check [Stylelint rules](https://stylelint.io/user-guide/rules) for available options.
-
-## 📝 Example Usage
-
-### Sample JavaScript File
-```javascript
-// src/example.js
-const exampleFunction = (param) => {
-  const result = param * 2;
-  return result;
-};
-
-class ExampleClass {
-  constructor(name) {
-    this.name = name;
-    this.count = 0;
-  }
-
-  increment() {
-    this.count += 1;
-    return this.count;
-  }
-
-  getName() {
-    return this.name;
-  }
-}
-
-// Array methods
-const numbers = [1, 2, 3, 4, 5];
-const doubled = numbers.map(num => num * 2);
-const sum = numbers.reduce((acc, num) => acc + num, 0);
-
-// Object destructuring
-const user = {
-  firstName: 'John',
-  lastName: 'Doe',
-  age: 30
-};
-
-const { firstName, lastName } = user;
-
-// Template literals
-const greeting = `Hello, ${firstName} ${lastName}!`;
-
-// Export for module usage
-export { exampleFunction, ExampleClass, greeting };
-```
-
-### Sample HTML File
-```html
-<!-- src/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Example Page</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <main>
-        <h1>Hello World</h1>
-        <p>This is a sample HTML file.</p>
-    </main>
-</body>
-</html>
-```
-
-### Sample CSS File
-```css
-/* src/styles.css */
-.example {
-    color: #333;
-    font-size: 16px;
-    margin: 0;
-    padding: 1rem;
-}
-
-.example:hover {
-    color: #666;
-}
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **Node.js not found**: Install Node.js from [nodejs.org](https://nodejs.org/)
-2. **Permission denied**: Make sure `lint.sh` is executable: `chmod +x lint.sh`
-3. **ESLint not found**: Run `npm install` to install dependencies
-
-### Getting Help
-
-- [ESLint Documentation](https://eslint.org/)
-- [HTMLHint Documentation](https://htmlhint.com/)
-- [Stylelint Documentation](https://stylelint.io/)
-
-## 📄 License
-
-MIT License - feel free to use and modify as needed.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with the linters
-5. Submit a pull request
-
----
-
-**Happy coding! 🎉**
+Contact your development lead or open issues in your version control repository if something is broken or needs improvement. 
