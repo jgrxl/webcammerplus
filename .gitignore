@@ -34,6 +34,7 @@
 # Vue.js specific
 /vue-extension/node_modules/
 /vue-extension/dist/
+/node_modules/
 
 # Linter caches
 .eslintcache
