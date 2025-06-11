@@ -1,10 +1,15 @@
 from flask import Flask
+from routes.routes import bp as api_bp
+from client.es_client import load_mappings   # still works
 
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__)
+    load_mappings()
+    app.register_blueprint(api_bp, url_prefix="/")
+    @app.route("/")
+    def hello(): return "Hello, World!"
+    return app
 
-@app.route('/')
-def hello_world():
-    return 'Hello, World!'
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__=="__main__":
+    # cd into server/ and run:
+    create_app().run(debug=True)
