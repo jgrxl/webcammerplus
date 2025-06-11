@@ -1,14 +1,12 @@
-# Right Panel Sidebar Chrome Extension
+# WebCammerPlus Chrome Extension
 
-This extension toggles a sidebar on the right side of any webpage, with icons for different tools like replying, translating, admin chat, and help/FAQ. It also modifies parts of the main page (e.g., #main and #base divs) and supports a colored icon indicator to show connection state (green, red, yellow, blue).
-
----
+This repository contains the WebCammerPlus Chrome Extension.
 
 ## 🛠️ Local Development Setup
 
 ### 1. Clone or Download the Extension
 
-Unzip the downloaded folder or clone your project locally.
+Clone this project locally or download the zipped folder.
 
 ```
 webcammerplus/
@@ -26,7 +24,6 @@ webcammerplus/
 │   ├── public/             # Public assets, including manifest.json
 │   │   └── manifest.json
 │   ├── src/                # Vue.js source code
-│   ├── .eslintrc.js        # ESLint configuration for JavaScript/Vue
 │   ├── .htmlhintrc         # HTMLHint configuration
 │   ├── .stylelintrc.json   # Stylelint configuration
 │   └── package.json        # Node.js dependencies and scripts
@@ -68,20 +65,8 @@ Any changes you make to the files will require:
 Navigate to the `vue-extension` directory and use the following commands:
 
 ```bash
-# Run all linters
+# Run linter
 npm run lint
-
-# Lint JavaScript and Vue files
-npm run lint:js
-
-# Lint HTML files
-npm run lint:html
-
-# Lint CSS files
-npm run lint:css
-
-# Fix linting issues (where possible)
-npm run lint:fix
 ```
 
 ---
@@ -102,8 +87,6 @@ chrome.action.setIcon({ path: "icon-red.png" });
 ```
 
 You may integrate this with connection health checks, API ping responses, or status of a third-party app.
-
----
 
 ## 📦 Packaging the Extension
 
@@ -126,9 +109,6 @@ The Help tab in the sidebar shows setup instructions for users:
 
 This can be updated in `sidebar.html` as needed.
 
----
-
 ## ❓ Need Help?
 
-Contact your development lead or open issues in your version control repository if something is broken or needs improvement.
-
+Contact your development lead or open issues in your version control repository if something is broken or needs improvement. 
