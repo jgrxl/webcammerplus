@@ -1,110 +1,77 @@
 <template>
-    <div class="modal-backdrop" @click.self="$emit('close')">
-      <div class="modal-container">
-        <button class="close-btn" @click="$emit('close')">×</button>
-  
-        <!-- Logo -->
-        <div class="logo">
-          <!-- Replace with your SVG or <img src="…"> -->
-          <svg width="48" height="48" viewBox="0 0 24 24">
-            <!-- example brain icon -->
-            <path fill="url(#grad)" d="M12 2C8 2 5 5 5 9v6c0 4 3 7 7 7s7-3 7-7V9c0-4-3-7-7-7z"/>
-            <defs>
-              <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#ff8a00"/>
-                <stop offset="100%" stop-color="#e52e71"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-  
-        <!-- Title & subtitle -->
-        <h2>{{ isLogin ? 'Log in' : 'Welcome' }}</h2>
-        <p v-if="!isLogin" class="subtitle">
-          Sign up to get <strong>30 free</strong> credits every day
-        </p>
-  
-        <!-- OAuth buttons -->
-        <button class="btn btn-google" @click="handleGoogle">
-          <span class="icon">G</span>
-          Continue with Google
-        </button>
-        <button class="btn btn-apple" @click="handleApple">
-          <span class="icon"></span>
-          Continue with Apple
-        </button>
-  
-        <!-- Phone only for login -->
-        <button
-          v-if="isLogin"
-          class="btn btn-phone"
-          @click="handlePhone"
-        >
-          <span class="icon">📱</span>
-          Continue with Phone
-        </button>
-  
-        <!-- toggle link -->
-        <p class="toggle-link">
-          <span v-if="isLogin">
-            Don’t have an account?
-            <a @click.prevent="toggleMode">Create an account</a>
-          </span>
-          <span v-else>
-            Already have an account?
-            <a @click.prevent="toggleMode">Log in</a>
-          </span>
-        </p>
-  
-        <!-- legal disclaimers -->
-        <p class="small">🔒 Your data is never shared. No spam messages.</p>
-        <p class="tiny">
-          By continuing, you agree to the
-          <a href="/privacy" @click="$emit('close')">Privacy Policy</a>
-          &amp;
-          <a href="/terms" @click="$emit('close')">Terms of Use</a>
-        </p>
+  <div class="modal-backdrop" @click.self="$emit('close')">
+    <div class="modal-container">
+      <button class="close-btn" @click="$emit('close')">×</button>
+      <div class="logo">
+        <!-- … your SVG or <img> … -->
       </div>
+      <h2>{{ isLogin ? 'Log in' : 'Sign up' }}</h2>
+      <p v-if="!isLogin" class="subtitle">
+        Sign up to get <strong>30 free</strong> credits every day
+      </p>
+      
+      <!-- Auth0 buttons -->
+      <button class="btn btn-google" @click="handleAuth('google-oauth2')">
+        <span class="icon">G</span>
+        {{ isLogin ? 'Log in' : 'Sign up' }} with Google
+      </button>
+      <button class="btn btn-apple" @click="handleAuth('apple')">
+        <span class="icon"></span>
+        {{ isLogin ? 'Log in' : 'Sign up' }} with Apple
+      </button>
+      <button
+        v-if="isLogin"
+        class="btn btn-phone"
+        @click="handleAuth('sms')"
+      >
+        <span class="icon">📱</span>
+        Continue with Phone
+      </button>
+      
+      <p class="toggle-link">
+        <span v-if="isLogin">
+          Don’t have an account?
+          <a @click.prevent="toggleMode">Create one</a>
+        </span>
+        <span v-else>
+          Already have an account?
+          <a @click.prevent="toggleMode">Log in</a>
+        </span>
+      </p>
+      
+      <p class="small">🔒 Your data is never shared. No spam.</p>
+      <p class="tiny">
+        By continuing, you agree to our
+        <a href="/privacy" @click="$emit('close')">Privacy Policy</a>
+        &amp;
+        <a href="/terms" @click="$emit('close')">Terms of Use</a>
+      </p>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    name: "AccountModal",
-    data() {
-      return {
-        isLogin: true,
-      };
-    },
-    methods: {
-      toggleMode() {
-        this.isLogin = !this.isLogin;
-      },
-      handleGoogle() {
-        if (this.isLogin) {
-          // TODO: login with Google
-          console.log("Google login");
-        } else {
-          // TODO: signup with Google
-          console.log("Google signup");
-        }
-      },
-      handleApple() {
-        if (this.isLogin) {
-          // TODO: login with Apple
-          console.log("Apple login");
-        } else {
-          // TODO: signup with Apple
-          console.log("Apple signup");
-        }
-      },
-      handlePhone() {
-        // TODO: phone login flow
-        console.log("Phone login");
-      },
-    },
-  };
-  </script>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useAuth0 } from '@auth0/auth0-vue'
+// import { emit } from 'vue'
+
+// local state
+const isLogin = ref(true)
+
+// pull the Auth0 methods we need
+const { loginWithRedirect } = useAuth0()
+
+function toggleMode() {
+  isLogin.value = !isLogin.value
+}
+
+function handleAuth(connection) {
+  loginWithRedirect({
+    connection,
+    screen_hint: isLogin.value ? 'login' : 'signup'
+  })
+}
+</script>
   
   <style scoped>
   .modal-backdrop {

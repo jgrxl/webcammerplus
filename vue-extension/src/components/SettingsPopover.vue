@@ -7,6 +7,7 @@
         <button class="close-btn" @click="$emit('close')">×</button>
       </header>
 
+      {{ user.user.sub }} 
       <div v-if="!isLoggedIn">
         <button>Login</button>
       </div>
@@ -23,14 +24,21 @@
   </div>
 </template>
 
+
+
+
 <script>
+import { useAuth0 } from '@auth0/auth0-vue'
+
+
 export default {
   name: 'SettingsPopover',
   data() {
     return {
-      isLoggedIn: false
+      isLoggedIn: false,
+      user :useAuth0()
     }
-  }
+  },
 }
 </script>
 
