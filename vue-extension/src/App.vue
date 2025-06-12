@@ -49,7 +49,7 @@ export default {
 <style>
 .layout {
   display: flex;
-  height: 100vh;
+  height: 90vh;
   overflow: hidden;
 }
 
