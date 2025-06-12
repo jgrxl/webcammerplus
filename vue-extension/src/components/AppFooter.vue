@@ -30,11 +30,11 @@ const showModal = ref(false)
 const { isAuthenticated } = useAuth0()
 
 function handleHelp() {
-  window.location.href = 'https://www.google.com'
+  window.location.href = 'https://jovanrlee.github.io/webcammerplus/index.html#support'
 }
 
 function handleFeedback() {
-  window.location.href = '/feedback'
+  window.location.href = 'https://jovanrlee.github.io/webcammerplus/index.html#support'
 }
 </script>
 
