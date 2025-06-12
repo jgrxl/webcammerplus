@@ -1,5 +1,4 @@
 <template>
-  <!-- backdrop covers from the right edge of your sidebar to the window edge -->
   <div class="popover-backdrop" @click.self="$emit('close')">
     <div class="popover">
       <header>
@@ -7,12 +6,9 @@
         <button class="close-btn" @click="$emit('close')">×</button>
       </header>
 
-      {{ user.user.sub }} 
-      <div v-if="!isLoggedIn">
-        <button>Login</button>
-      </div>
-
-      <div v-else>
+      <!-- Auth0-based user info -->
+      <div v-if="isAuthenticated">
+        <p class="user-name">Hello, {{ user.name }}</p>
         <ul>
           <li><a href="#">Profile</a></li>
           <li><a href="#">Account</a></li>
@@ -20,25 +16,29 @@
           <li><a href="#">Appearance</a></li>
         </ul>
       </div>
+
+      <div v-else>
+        <button class="btn btn-login" @click="openLogin">
+          Login
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
-
-
-
-<script>
+<script setup>
 import { useAuth0 } from '@auth0/auth0-vue'
+// import { ref } from 'vue'
 
+// Local state to track modal sub-mode if needed
+const { isAuthenticated, user, loginWithRedirect } = useAuth0()
 
-export default {
-  name: 'SettingsPopover',
-  data() {
-    return {
-      isLoggedIn: false,
-      user :useAuth0()
-    }
-  },
+// If you need to re-open the AccountModal for choosing connection
+// const isLoginMode = ref(true)
+
+function openLogin() {
+  // Trigger Auth0 Universal Login
+  loginWithRedirect({ screen_hint: 'login' })
 }
 </script>
 
@@ -47,13 +47,12 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  width: calc(100vw - 100px); /* stops at sidebar’s right edge */
+  width: calc(100vw - 100px);
   height: 100vh;
   background: rgba(0, 0, 0, 0.1);
-
   display: flex;
-  justify-content: flex-end;  /* push popover to the right */
-  align-items: flex-start;    /* pin to the top, not bottom */
+  justify-content: flex-end;
+  align-items: flex-start;
   padding: 1rem;
   z-index: 1000;
 }
@@ -64,7 +63,7 @@ export default {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   width: 200px;
   overflow: hidden;
-  margin-top: 3rem;           /* drop it below your gear icon */
+  margin-top: 3rem;
 }
 
 .popover header {
@@ -83,6 +82,11 @@ export default {
   cursor: pointer;
 }
 
+.popover .user-name {
+  margin: 1rem;
+  font-weight: 500;
+}
+
 .popover ul {
   list-style: none;
   margin: 0;
@@ -98,5 +102,22 @@ export default {
 
 .popover ul li a:hover {
   background: #f0f0f0;
+}
+
+.btn-login {
+  display: block;
+  width: calc(100% - 2rem);
+  margin: 1rem;
+  padding: 0.5rem;
+  background: #5c2dfd;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn-login:hover {
+  background: #4a1cb0;
 }
 </style>
