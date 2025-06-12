@@ -1,0 +1,9 @@
+{
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["."],
+  
+    "python.testing.pytestPath": ".venv/bin/pytest",
+    "python.defaultInterpreterPath": ".venv/bin/python3"
+  }
+  

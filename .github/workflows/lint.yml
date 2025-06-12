@@ -10,6 +10,7 @@ on:
       - python-linter
       - delete-pages
       - ollama
+      - update-linter
   pull_request:
     branches:
       - main
@@ -19,6 +20,7 @@ on:
       - python-linter
       - delete-pages
       - ollama
+      - update-linter
 
 jobs:
   # Vue Extension Linting

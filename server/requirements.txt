@@ -2,4 +2,6 @@ flask>=2.3.3
 python-dotenv>=0.19.2
 authlib>=1.0
 requests>=2.27.1
-elasticsearch==7.17
+elasticsearch==8.0
+ollama==0.5.1
+
