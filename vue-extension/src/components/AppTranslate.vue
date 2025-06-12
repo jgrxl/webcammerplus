@@ -1,7 +1,7 @@
 <template>
   <div class="translate-page">
 
-    <!-- Page header with preview button -->
+    <!-- 1) Header with preview button -->
     <header class="translate-header">
       <h1>Translate</h1>
       <button class="settings-btn" @click="showSettings = true">
@@ -9,14 +9,16 @@
       </button>
     </header>
 
-    <!-- ←→ Language selectors just above the panels -->
+    <!-- 2) Language selectors -->
     <div class="lang-controls">
       <select v-model="sourceLang">
         <option
           v-for="lang in languages"
           :key="lang.code"
           :value="lang.code"
-        >{{ lang.name }}</option>
+        >
+          {{ lang.name }}
+        </option>
       </select>
 
       <button class="swap-btn" @click="swapLanguages">⇄</button>
@@ -26,33 +28,23 @@
           v-for="lang in languages"
           :key="lang.code"
           :value="lang.code"
-        >{{ lang.name }}</option>
+        >
+          {{ lang.name }}
+        </option>
       </select>
     </div>
 
-    <!-- The two text panels -->
-    <div class="panels">
-      <div class="panel left">
-        <textarea
-          v-model="text"
-          placeholder="Type or paste text…"
-        ></textarea>
-        <button class="mic-btn">🎤</button>
-      </div>
-
-      <!-- You can remove this swap if you prefer just the ↑↑ controls above -->
-      <div class="swap" @click="swapLanguages">⇄</div>
-
-      <div class="panel right">
-        <textarea
-          v-model="result"
-          readonly
-          placeholder="Translation appears here…"
-        ></textarea>
-      </div>
+    <!-- 3) Input textarea -->
+    <div class="input-container">
+      <textarea
+        v-model="text"
+        placeholder="Type or paste text…"
+        class="input-textarea"
+      ></textarea>
+      <button class="mic-btn">🎤</button>
     </div>
 
-    <!-- Translate button -->
+    <!-- 4) Translate trigger -->
     <button
       class="translate-btn"
       :disabled="!text.trim()"
@@ -61,7 +53,24 @@
       Translate
     </button>
 
-    <!-- Settings Modal (unchanged) -->
+    <!-- 5) Result + action buttons -->
+    <div class="result-container" v-if="result">
+      <textarea
+        readonly
+        class="result-textarea"
+        :value="result"
+        placeholder="Translation appears here…"
+      ></textarea>
+
+      <div class="action-buttons">
+        <button @click="copyResult">Copy</button>
+        <button @click="rewriteResult">Rewrite</button>
+        <button @click="regenerate">Regenerate</button>
+        <button @click="readAloud">Read loud</button>
+      </div>
+    </div>
+
+    <!-- 6) Settings popup (unchanged) -->
     <SettingsModal
       v-if="showSettings"
       :model="model"
@@ -96,14 +105,15 @@ export default {
       result:        '',
 
       // your three preferences
-      model:        'standard',
-      tone:         'neutral',
-      styleLevel:   'creative',
+      model:       'standard',
+      tone:        'neutral',
+      styleLevel:  'creative',
 
-      // language codes
-      sourceLang:   'auto',
-      targetLang:   'en',
+      // languages
+      sourceLang:  'auto',
+      targetLang:  'en',
 
+      // options arrays…
       modelOptions: [
         { value: 'standard', label: 'Standard' },
         { value: 'creative',  label: 'Creative' },
@@ -126,12 +136,11 @@ export default {
         { code: 'fr',   name: 'French'      },
         { code: 'de',   name: 'German'      },
         { code: 'zh',   name: 'Chinese'     },
-        // …etc…
+        // …add more…
       ],
     }
   },
   computed: {
-    // preview for top‐right button
     previewText() {
       const m = this.modelOptions.find(o => o.value === this.model)?.label
       const t = this.toneOptions .find(o => o.value === this.tone )?.label
@@ -141,12 +150,30 @@ export default {
   },
   methods: {
     doTranslate() {
-      // call your API…
+      // → hook up your real API here
       this.result = `Translated [${this.text}] → ${this.targetLang}`
     },
     swapLanguages() {
       [this.sourceLang, this.targetLang] =
         [this.targetLang, this.sourceLang]
+    },
+    copyResult() {
+      navigator.clipboard.writeText(this.result)
+        .then(() => console.log('Copied!'))
+        .catch(() => console.warn('Copy failed'))
+    },
+    rewriteResult() {
+      // → call your “rewrite” endpoint
+      console.log('Rewrite:', this.result)
+    },
+    regenerate() {
+      // just re-run translate for now
+      this.doTranslate()
+    },
+    readAloud() {
+      if (!this.result) return
+      const u = new SpeechSynthesisUtterance(this.result)
+      speechSynthesis.speak(u)
     }
   }
 }
@@ -168,7 +195,6 @@ export default {
   cursor: pointer;
 }
 
-/* new language controls above panels */
 .lang-controls {
   display: flex;
   justify-content: center;
@@ -190,24 +216,20 @@ export default {
   cursor: pointer;
 }
 
-.panels {
-  display: flex;
-  margin-bottom: 1rem;
-}
-.panel {
-  flex: 1;
+.input-container {
   position: relative;
+  margin-bottom: 0.75rem;
 }
-.panel textarea {
+.input-textarea {
   width: 100%;
-  height: 200px;
+  height: 150px;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: none;
   font-size: 1rem;
 }
-.left .mic-btn {
+.mic-btn {
   position: absolute;
   bottom: 0.5rem;
   left: 0.5rem;
@@ -216,14 +238,7 @@ export default {
   font-size: 1.25rem;
   cursor: pointer;
 }
-.swap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  cursor: pointer;
-  user-select: none;
-}
+
 .translate-btn {
   width: 100%;
   padding: 0.75rem;
@@ -236,5 +251,36 @@ export default {
 .translate-btn:disabled {
   background: #aaa;
   cursor: not-allowed;
+}
+
+.result-container {
+  margin-top: 1rem;
+}
+.result-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: none;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+.action-buttons button {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: #f8f8f8;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.action-buttons button:hover {
+  background: #e0e0e0;
 }
 </style>
