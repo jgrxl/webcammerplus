@@ -37,6 +37,8 @@ __pycache__/
 /vue-extension/node_modules/
 /vue-extension/dist/
 /node_modules/
+/package-lock.json
+/vue-extension/package-lock.json
 
 # Linter caches
 .eslintcache
