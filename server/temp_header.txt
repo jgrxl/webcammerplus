@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""
+Comprehensive Python linting script for WebCammerPlus server.
+Runs all linting tools and provides a unified report.
+"""
+

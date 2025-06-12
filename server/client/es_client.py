@@ -1,7 +1,8 @@
 # server/client/es_client.py
 
-import os
 import json
+import os
+
 from elasticsearch import Elasticsearch
 
 # -----------------------------------------------------------------------------
@@ -12,7 +13,8 @@ from elasticsearch import Elasticsearch
 _ES_HOSTS = os.getenv("ES_HOSTS", "http://localhost:9200").split(",")
 es = Elasticsearch(_ES_HOSTS)
 
-def load_mappings():
+
+def load_mappings() -> None:
     """
     Load index mappings from JSON files in ../mappings/,
     creating each index if it doesn't already exist.
