@@ -1,24 +1,32 @@
-name: Lint Vue Extension
+name: Comprehensive Linting
 
 on:
   push:
     branches:
       - main
       - develop
-    paths:
-      - 'vue-extension/**'
+      - website
+      - mapping
+      - python-linter
+      - delete-pages
+      - ollama
   pull_request:
     branches:
       - main
       - develop
-    paths:
-      - 'vue-extension/**'
+      - website
+      - mapping
+      - python-linter
+      - delete-pages
+      - ollama
 
 jobs:
-  lint:
+  # Vue Extension Linting
+  lint-vue:
+    name: Lint Vue Extension
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'vue-extension/') || contains(github.event.pull_request.files.*.path, 'vue-extension/') || github.event_name == 'push'
 
-    # all `run:` steps will be executed from vue-extension/
     defaults:
       run:
         working-directory: vue-extension
@@ -37,5 +45,119 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linter
+      - name: Run ESLint
         run: npm run lint
+
+  # Python Server Linting
+  lint-python:
+    name: Lint Python Server
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'server/') || contains(github.event.pull_request.files.*.path, 'server/') || github.event_name == 'push'
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: server/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run Black (code formatting)
+        run: black . --check --diff
+
+      - name: Run isort (import sorting)
+        run: isort . --check-only --diff
+
+      - name: Run flake8 (style guide)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run pylint (code analysis)
+        run: pylint **/*.py --disable=C0114,C0115,C0116
+
+      - name: Run mypy (type checking)
+        run: mypy . --ignore-missing-imports
+
+      - name: Run bandit (security)
+        run: bandit -r . -f json -o bandit-report.json || true
+
+  # Website Files Linting
+  lint-website:
+    name: Lint Website Files
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'docs/') || contains(github.event.pull_request.files.*.path, 'docs/') || github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install HTMLHint
+        run: npm install -g htmlhint
+
+      - name: Install Stylelint
+        run: npm install -g stylelint stylelint-config-standard
+
+      - name: Lint HTML files
+        run: |
+          if [ -d "docs" ]; then
+            find docs -name "*.html" -exec htmlhint {} \;
+          fi
+
+      - name: Lint CSS files
+        run: |
+          if [ -d "docs" ]; then
+            find docs -name "*.css" -exec stylelint {} \;
+          fi
+
+      - name: Lint JavaScript files
+        run: |
+          if [ -d "docs" ]; then
+            find docs -name "*.js" -exec node -c {} \;
+          fi
+
+  # General Code Quality
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for TODO comments
+        run: |
+          echo "Checking for TODO comments..."
+          if grep -r "TODO" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__pycache__; then
+            echo "⚠️  TODO comments found. Consider addressing them before merging."
+            exit 0  # Don't fail the build, just warn
+          else
+            echo "✅ No TODO comments found."
+          fi
+
+      - name: Check for hardcoded credentials
+        run: |
+          echo "Checking for potential hardcoded credentials..."
+          if grep -r -i "password\|secret\|key\|token" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__pycache__ --exclude=*.md | grep -v "example\|test\|TODO"; then
+            echo "⚠️  Potential hardcoded credentials found. Please review."
+            exit 0  # Don't fail the build, just warn
+          else
+            echo "✅ No obvious hardcoded credentials found."
+          fi
