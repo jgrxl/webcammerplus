@@ -1,8 +1,9 @@
-
-from ollama import chat, ChatResponse
 from typing import Optional
 
+from ollama import chat
+
 OLLAMA_MODEL = "llama2"  # or whichever model you've pulled
+
 
 def translate_text(
     text: str,
@@ -18,9 +19,6 @@ def translate_text(
         content = f"Translate the following text to {to_lang}: {text}"
 
     # chat() wraps the HTTP API for you
-    response = chat(
-        model=OLLAMA_MODEL,
-        messages=[{"role": "user", "content": content}]
-    )
+    response = chat(model=OLLAMA_MODEL, messages=[{"role": "user", "content": content}])
     # the translated text is in response.message.content
     return response.message.content.strip()
