@@ -4,14 +4,8 @@ import json
 import os
 
 from elasticsearch import Elasticsearch
-from elasticsearch.exceptions import TransportError
+from elasticsearch.exceptions import BadRequestError
 
-
-# -----------------------------------------------------------------------------
-# Configure your ES client however makes sense for your environment:
-#   - via environment variable ES_HOSTS (e.g. "http://localhost:9200")
-#   - defaulting to localhost
-# -----------------------------------------------------------------------------
 _ES_HOSTS = os.getenv("ES_HOSTS", "http://localhost:9200").split(",")
 es = Elasticsearch(_ES_HOSTS)
 
@@ -45,5 +39,5 @@ def load_mappings() -> None:
                 print(f"[es_client] Created index '{index_name}'.")
             else:
                 print(f"[es_client] Index '{index_name}' already exists.")
-        except TransportError as err:  #
+        except BadRequestError as err:
             print(f"[es_client] load_mappings failed for '{index_name}': {err}")

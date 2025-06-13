@@ -1,4 +1,5 @@
 import html
+
 import pytest
 from flask import Flask
 
