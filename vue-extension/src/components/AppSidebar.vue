@@ -5,7 +5,7 @@
         <!-- top section -->
         <li><router-link to="/">🏠 Home</router-link></li>
         <li><router-link to="/translate">🌐 Translate</router-link></li>
-        <li><router-link to="/">🖊️ Edit</router-link></li>
+        <li><router-link to="/edit">🖊️ Edit</router-link></li>
         <li><router-link to="/">❓ Help</router-link></li>
 
         <!-- bottom-pinned -->
@@ -19,10 +19,16 @@
   </aside>
 </template>
 
-<script>
-export default {
-  name: 'AppSidebar'
-}
+<script setup>
+import { useAuth0 } from '@auth0/auth0-vue'
+
+// Destructure inside setup — these are refs, so use .value in JS,
+// but in the template Vue unwraps them automatically.
+const { isAuthenticated, user  } = useAuth0()
+
+// Optional: debug in console
+console.log('logged in?', isAuthenticated.value)
+console.log('user profile', user.value)
 </script>
 
 <style scoped>
