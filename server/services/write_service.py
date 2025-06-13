@@ -1,6 +1,4 @@
 # pylint: disable=R0801
-from typing import Optional
-
 from ollama import Client
 
 OLLAMA_MODEL = "tinyllama:latest"
@@ -9,16 +7,8 @@ OLLAMA_HOST = "http://localhost:11434"
 client = Client(host=OLLAMA_HOST)
 
 
-def translate_text(
-    text: str,
-    to_lang: str,
-    from_lang: Optional[str] = None,
-) -> str:
-    """
-    Use Ollama's Python client to translate `text` into `to_lang`.
-    """
-    prompt = _build_prompt_translate(text, to_lang, from_lang)
-
+def write_text(style: str, text: str, to_lang: str) -> str:
+    prompt = _build_prompt_write(style, text, to_lang)
     response = client.chat(
         model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}]
     )
@@ -30,13 +20,10 @@ def translate_text(
     return response_text
 
 
-def _build_prompt_translate(
+def _build_prompt_write(
+    style: str,
     text: str,
     to_lang: str,
-    from_lang: Optional[str] = None,
 ) -> str:
-    prompt = f"Translate the following text to {to_lang}"
-    if from_lang:
-        prompt += f" from {from_lang}"
-    prompt += f": {text}"
+    prompt = f"Write a {style} text in {to_lang} " f"about the following text: {text}"
     return prompt
