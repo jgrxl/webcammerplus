@@ -1,3 +1,4 @@
+# pylint: disable=R0801
 from ollama import Client
 
 OLLAMA_MODEL = "tinyllama:latest"
@@ -12,18 +13,19 @@ def reply_text(
     style: str,
     to_lang: str,
 ) -> str:
-    prompt = _build_prompt(original_text, response_idea, style, to_lang)
+    prompt = _build_prompt_reply(original_text, response_idea, style, to_lang)
     response = client.chat(
         model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}]
     )
 
-    if response.message.content is None:
+    if response["message"]["content"] is None:
         raise ValueError("No content in response")
 
-    return response.message.content
+    response_text: str = response["message"]["content"]
+    return response_text
 
 
-def _build_prompt(
+def _build_prompt_reply(
     original_text: str,
     response_idea: str,
     style: str,
