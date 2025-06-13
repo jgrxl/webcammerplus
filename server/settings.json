@@ -4,6 +4,28 @@
     "python.testing.pytestArgs": ["."],
   
     "python.testing.pytestPath": ".venv/bin/pytest",
-    "python.defaultInterpreterPath": ".venv/bin/python3"
-  }
+    "python.defaultInterpreterPath": ".venv/bin/python3",
+    "python.formatting.provider": "black",
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": ["--max-line-length=88"],
+    "python.linting.flake8Path": ".venv/bin/flake8",
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyPath": ".venv/bin/mypy",
+    "python.linting.mypyArgs": ["--ignore-missing-imports"],
+    "editor.formatOnSave": true,
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    },
+    "python.analysis.typeCheckingMode": "basic",
+    "editor.formatOnSaveTimeout": 2000,
+    "editor.formatOnPaste": true,
+    "python.formatting.blackPath": ".venv/bin/black",
+    "python.formatting.blackArgs": ["--line-length", "88"],
+    "editor.formatOnSaveMode": "file",
+    "black-formatter.args": ["--line-length", "88"]
+}
   

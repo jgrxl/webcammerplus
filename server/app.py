@@ -1,7 +1,7 @@
 from flask import Flask
 
 from server.client.es_client import load_mappings  # still works
-from server.routes.translate import bp as translate_bp
+from server.routes.translate_route import bp as translate_bp
 
 
 def create_app() -> Flask:
