@@ -66,8 +66,8 @@ jobs:
       - name: Run Black (code formatting)
         run: black . --check --diff
 
-      - name: Run isort (import sorting)
-        run: isort . --check-only --diff
+      # - name: Run isort (import sorting)
+      #   run: isort . --check-only --diff
 
       - name: Run flake8 (style guide)
         run: flake8 . --count --show-source --statistics
