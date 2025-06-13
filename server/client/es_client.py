@@ -20,7 +20,6 @@ def load_mappings() -> None:
     creating each index if it doesn't already exist.
     Any error (BadRequest, HTTP, network) is caught and logged.
     """
-    # __file__ is server/client/es_client.py, so go up one to server/, then into mappings/
     base_dir = os.path.dirname(__file__)
     mappings_dir = os.path.normpath(os.path.join(base_dir, "..", "mappings"))
 
@@ -45,5 +44,4 @@ def load_mappings() -> None:
             else:
                 print(f"[es_client] Index '{index_name}' already exists.")
         except Exception as err:
-            # catches ElasticsearchException, HTTP errors, network issues, etc.
             print(f"[es_client] load_mappings failed for '{index_name}': {err}")

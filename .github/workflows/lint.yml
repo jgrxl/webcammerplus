@@ -70,16 +70,16 @@ jobs:
         run: isort . --check-only --diff
 
       - name: Run flake8 (style guide)
-        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        run: flake8 . --count --show-source --statistics
 
       - name: Run pylint (code analysis)
-        run: pylint **/*.py --disable=C0114,C0115,C0116
+        run: pylint **/*.py 
 
       - name: Run mypy (type checking)
-        run: mypy . --ignore-missing-imports
+        run: mypy . 
 
-      - name: Run bandit (security)
-        run: bandit -r . -f json -o bandit-report.json || true
+      # - name: Run bandit (security)
+      #   run: bandit -r . -f json -o bandit-report.json || true
 
   # General Code Quality
   code-quality:

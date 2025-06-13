@@ -1,6 +1,4 @@
-# server/routes/translate.py
 from dataclasses import asdict, dataclass
-from typing import Optional
 
 from flask import Blueprint, Response, abort, jsonify, request
 
@@ -19,29 +17,25 @@ class TranslateResponse:
     translation: str
 
 
-# private translator stub
-def _translate(text: str, to_lang: str) -> str:
-    """
-    Stub translation function: always returns the same text.
-    """
-    return text  # or replace with any static string
+def _translate(text: str) -> str:
+    """Stub translation function: always returns the same text."""
+    return text
 
 
-@bp.route("/", methods=["POST"])  # type: ignore[misc]
+@bp.route("/", methods=["POST"])
 def translate_text() -> Response:
     payload = request.get_json(force=True) or {}
-    # Validate required fields
     if "text" not in payload or "to_lang" not in payload:
         abort(400, description="Both 'text' and 'to_lang' fields are required.")
 
-    # Build request object
     try:
         req = TranslateRequest(**payload)
     except TypeError as e:
         abort(400, description=str(e))
 
-    # Perform translation via private stub
-    translated = _translate(req.text, req.to_lang)
-
+    translated = _translate(req.text)
     out = TranslateResponse(success=True, translation=translated)
-    return jsonify(asdict(out)), 200
+
+    resp = jsonify(asdict(out))
+    resp.status_code = 200
+    return resp

@@ -1,7 +1,7 @@
 import html
 
 import pytest
-from flask import Flask, Response
+from flask import Flask
 
 from server.routes.translate import bp as translate_bp
 
