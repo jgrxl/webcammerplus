@@ -11,9 +11,7 @@ ignore =
     # Module level import not at top of file (handled by isort)
     E402,
     # Do not assign a lambda expression, use a def (sometimes needed)
-    E731,
-    # Redefining name from outer scope (sometimes needed for clarity)
-    W0621
+    E731
 
 # Exclude directories and files
 exclude = 
