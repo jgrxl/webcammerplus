@@ -76,7 +76,7 @@ jobs:
         run: pylint **/*.py 
 
       - name: Run mypy (type checking)
-        run: mypy --python-version 3.10 
+        run: mypy --python-version 3.10 .
 
       # - name: Run bandit (security)
       #   run: bandit -r . -f json -o bandit-report.json || true
