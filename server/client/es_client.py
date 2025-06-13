@@ -40,9 +40,7 @@ def load_mappings() -> None:
             if not es.indices.exists(index=index_name):
                 if settings or mappings:
                     es.indices.create(
-                        index=index_name,
-                        settings=settings,
-                        mappings=mappings
+                        index=index_name, settings=settings, mappings=mappings
                     )
                 else:
                     es.indices.create(index=index_name)
