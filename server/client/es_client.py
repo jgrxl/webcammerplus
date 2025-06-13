@@ -4,6 +4,8 @@ import json
 import os
 
 from elasticsearch import Elasticsearch
+from elasticsearch.exceptions import TransportError
+
 
 # -----------------------------------------------------------------------------
 # Configure your ES client however makes sense for your environment:
@@ -43,5 +45,5 @@ def load_mappings() -> None:
                 print(f"[es_client] Created index '{index_name}'.")
             else:
                 print(f"[es_client] Index '{index_name}' already exists.")
-        except Exception as err:
+        except TransportError as err: #
             print(f"[es_client] load_mappings failed for '{index_name}': {err}")
