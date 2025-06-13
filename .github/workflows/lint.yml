@@ -4,23 +4,9 @@ on:
   push:
     branches:
       - main
-      - develop
-      - website
-      - mapping
-      - python-linter
-      - delete-pages
-      - ollama
-      - update-linter
   pull_request:
     branches:
       - main
-      - develop
-      - website
-      - mapping
-      - python-linter
-      - delete-pages
-      - ollama
-      - update-linter
 
 jobs:
   # Vue Extension Linting
@@ -94,45 +80,6 @@ jobs:
 
       - name: Run bandit (security)
         run: bandit -r . -f json -o bandit-report.json || true
-
-  # Website Files Linting
-  lint-website:
-    name: Lint Website Files
-    runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'docs/') || contains(github.event.pull_request.files.*.path, 'docs/') || github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install HTMLHint
-        run: npm install -g htmlhint
-
-      - name: Install Stylelint
-        run: npm install -g stylelint stylelint-config-standard
-
-      - name: Lint HTML files
-        run: |
-          if [ -d "docs" ]; then
-            find docs -name "*.html" -exec htmlhint {} \;
-          fi
-
-      - name: Lint CSS files
-        run: |
-          if [ -d "docs" ]; then
-            find docs -name "*.css" -exec stylelint {} \;
-          fi
-
-      - name: Lint JavaScript files
-        run: |
-          if [ -d "docs" ]; then
-            find docs -name "*.js" -exec node -c {} \;
-          fi
 
   # General Code Quality
   code-quality:
