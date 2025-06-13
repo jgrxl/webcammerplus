@@ -17,9 +17,7 @@ def flask_app_fixture() -> Flask:
 
 def test_translate_success(app: Flask) -> None:
     client = app.test_client()
-    resp = client.post(
-        "/translate/", json={"text": "hello world", "to_lang": "es"}
-    )
+    resp = client.post("/translate/", json={"text": "hello world", "to_lang": "es"})
     assert resp.status_code == 200  # nosec B101 - Test assertion
     data = resp.get_json()
     assert data["success"] is True  # nosec B101 - Test assertion
