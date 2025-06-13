@@ -1,11 +1,10 @@
-# server/client/es_client.py
-
 import json
 import os
 
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import BadRequestError
 
+# Initialize Elasticsearch client from ES_HOSTS environment variable
 _ES_HOSTS = os.getenv("ES_HOSTS", "http://localhost:9200").split(",")
 es = Elasticsearch(_ES_HOSTS)
 
@@ -27,15 +26,26 @@ def load_mappings() -> None:
         if not fname.endswith(".json"):
             continue
 
-        index_name = fname[:-5]  # strip “.json”
+        index_name = fname[:-5]  # strip ".json"
         mapping_path = os.path.join(mappings_dir, fname)
 
         with open(mapping_path, "r", encoding="utf-8") as f:
-            mapping = json.load(f)
+            mapping_doc = json.load(f)
+
+        # In ES 8+, use separate settings and mappings parameters
+        settings = mapping_doc.get("settings")
+        mappings = mapping_doc.get("mappings")
 
         try:
             if not es.indices.exists(index=index_name):
-                es.indices.create(index=index_name, body=mapping)
+                if settings or mappings:
+                    es.indices.create(
+                        index=index_name,
+                        settings=settings,
+                        mappings=mappings
+                    )
+                else:
+                    es.indices.create(index=index_name)
                 print(f"[es_client] Created index '{index_name}'.")
             else:
                 print(f"[es_client] Index '{index_name}' already exists.")
