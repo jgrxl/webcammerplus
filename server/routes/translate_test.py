@@ -1,7 +1,10 @@
+import html
+
 import pytest
 from flask import Flask
+
 from server.routes.translate import bp as translate_bp
-import html
+
 
 @pytest.fixture(autouse=True)
 def app():
@@ -15,10 +18,7 @@ def app():
 
 def test_translate_success(app):
     client = app.test_client()
-    resp = client.post(
-        "/translate/",
-        json={"text": "hello world", "to_lang": "es"}
-    )
+    resp = client.post("/translate/", json={"text": "hello world", "to_lang": "es"})
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["success"] is True
@@ -28,9 +28,7 @@ def test_translate_success(app):
 def test_translate_missing_fields(app):
     client = app.test_client()
     # Missing 'to_lang'
-    resp = client.post(
-        "/translate/", json={"text": "hola"}
-    )
+    resp = client.post("/translate/", json={"text": "hola"})
     assert resp.status_code == 400
     # HTML-escaped apostrophes: unescape before checking
     body = resp.get_data(as_text=True)
@@ -41,9 +39,10 @@ def test_translate_type_error(app):
     client = app.test_client()
     # Pass an extra unexpected field
     resp = client.post(
-        "/translate/",
-        json={"text": "hola", "to_lang": "en", "extra": 123}
+        "/translate/", json={"text": "hola", "to_lang": "en", "extra": 123}
     )
     assert resp.status_code == 400
     body = resp.get_data(as_text=True)
-    assert "__init__() got an unexpected keyword argument 'extra'" in html.unescape(body)
+    assert "__init__() got an unexpected keyword argument 'extra'" in html.unescape(
+        body
+    )

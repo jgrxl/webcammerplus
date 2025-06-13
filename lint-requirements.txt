@@ -1,0 +1,27 @@
+# Python code formatting and linting tools
+black==23.7.0
+isort==5.12.0
+flake8==6.0.0
+mypy==1.5.1
+bandit==1.7.5
+
+# Additional flake8 plugins for better code quality
+flake8-docstrings==1.7.0
+flake8-import-order==0.18.2
+flake8-bugbear==23.7.10
+flake8-comprehensions==3.14.0
+flake8-simplify==0.20.0
+
+# Type stubs for better mypy support
+types-requests==2.31.0.2
+types-flask==1.1.6
+
+# Testing tools (useful for linting test files)
+pytest==7.4.0
+pytest-cov==4.1.0
+
+# Security and dependency checking
+safety==2.3.4
+
+# Documentation linting
+pydocstyle==6.3.0

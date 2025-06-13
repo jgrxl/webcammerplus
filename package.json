@@ -1,0 +1,69 @@
+{
+  "name": "webcammerplus-linting",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Linting configuration for WebCammerPlus project",
+  "scripts": {
+    "lint": "npm run lint:js && npm run lint:html && npm run lint:css",
+    "lint:js": "eslint \"**/*.{js,ts,vue}\" --ignore-path .gitignore",
+    "lint:js:fix": "eslint \"**/*.{js,ts,vue}\" --ignore-path .gitignore --fix",
+    "lint:html": "htmlhint \"**/*.html\" --ignore=\"node_modules/**,dist/**,build/**\"",
+    "lint:css": "stylelint \"**/*.{css,scss,sass}\" --ignore-path .gitignore",
+    "lint:css:fix": "stylelint \"**/*.{css,scss,sass}\" --ignore-path .gitignore --fix",
+    "format": "prettier --write \"**/*.{js,ts,vue,html,css,scss,sass,json,md}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{js,ts,vue,html,css,scss,sass,json,md}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.27.4",
+    "@babel/eslint-parser": "^7.27.5",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vue/eslint-config-prettier": "^8.0.0",
+    "@vue/eslint-config-typescript": "^12.0.0",
+    "eslint": "^8.45.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-vue": "^9.15.0",
+    "htmlhint": "^1.1.4",
+    "prettier": "^3.0.0",
+    "stylelint": "^15.10.0",
+    "stylelint-config-standard": "^34.0.0",
+    "stylelint-order": "^6.0.3",
+    "typescript": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "linting",
+    "eslint",
+    "htmlhint",
+    "stylelint",
+    "prettier",
+    "translation",
+    "vue",
+    "typescript"
+  ],
+  "author": "WebCammerPlus Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jovanrlee/webcammerplus.git"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "none",
+    "printWidth": 80,
+    "bracketSpacing": true,
+    "arrowParens": "avoid",
+    "endOfLine": "lf"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

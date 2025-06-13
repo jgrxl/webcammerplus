@@ -4,13 +4,10 @@ Comprehensive Python linting script for WebCammerPlus server.
 Runs all linting tools and provides a unified report.
 """
 
-import json
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
-
+from typing import List, Dict
 
 # Color codes for terminal output
 class Colors:
@@ -47,6 +44,7 @@ class Linter:
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5 minute timeout
+                check=False,  # W1510: subprocess.run used without explicitly defining 'check'
             )
 
             self.output = result.stdout + result.stderr
@@ -65,10 +63,13 @@ class Linter:
             return False
         except FileNotFoundError:
             print(
-                f"{Colors.RED}✗ {self.name} not found. Install with: pip install -r requirements-dev.txt{Colors.END}"
+                f"{Colors.RED}✗ {self.name} not found. Install with: "
+                f"pip install -r requirements-dev.txt{Colors.END}"
             )
             return False
-        except Exception as e:
+        except Exception as e:  # W0718: Catching too general exception (B001)
+            # This broad exception is caught to ensure the linting script continues
+            # even if an unexpected error occurs with a linter, providing a full report.
             print(f"{Colors.RED}✗ {self.name} error: {e}{Colors.END}")
             return False
 
@@ -76,9 +77,15 @@ class Linter:
 def setup_linters() -> List[Linter]:
     """Setup all linters with their configurations."""
     return [
-        Linter("Black", ["black", "--check", "--diff", "."], "Code formatting check"),
         Linter(
-            "isort", ["isort", "--check-only", "--diff", "."], "Import sorting check"
+            "Black",
+            ["black", "--check", "--diff", "."],
+            "Code formatting check",
+        ),
+        Linter(
+            "isort",
+            ["isort", "--check-only", "--diff", "."],
+            "Import sorting check",
         ),
         Linter("flake8", ["flake8", "."], "Style guide enforcement"),
         Linter(
@@ -107,7 +114,7 @@ def run_linters(linters: List[Linter], cwd: str) -> Dict[str, bool]:
     return results
 
 
-def format_code(linters: List[Linter], cwd: str) -> bool:
+def format_code(cwd: str) -> bool: # W0613: Removed unused argument 'linters'
     """Run code formatters (Black and isort) to fix formatting issues."""
     print(f"{Colors.PURPLE}{Colors.BOLD}Running code formatters...{Colors.END}")
 
@@ -124,7 +131,7 @@ def format_code(linters: List[Linter], cwd: str) -> bool:
     return success
 
 
-def generate_report(results: Dict[str, bool]) -> None:
+def generate_report(results: Dict[str, bool]) -> bool:
     """Generate a summary report of all linting results."""
     print(f"\n{Colors.BOLD}{Colors.UNDERLINE}Linting Report{Colors.END}")
     print("=" * 50)
@@ -146,27 +153,30 @@ def generate_report(results: Dict[str, bool]) -> None:
     if passed == total:
         print(f"{Colors.GREEN}{Colors.BOLD}🎉 All checks passed!{Colors.END}")
         return True
-    else:
-        print(
-            f"{Colors.RED}{Colors.BOLD}❌ Some checks failed. Run with --fix to auto-fix formatting issues.{Colors.END}"
-        )
-        return False
+
+    print(
+        f"{Colors.RED}{Colors.BOLD}❌ Some checks failed. Run with --fix to "
+        f"auto-fix formatting issues.{Colors.END}"
+    )
+    return False
 
 
-def main():
+def main() -> None:
     """Main function to run the linting process."""
-    # Get the server directory
-    script_dir = Path(__file__).parent
-    server_dir = script_dir / "server"
+    # Get the current directory (should be the server directory)
+    current_dir = Path.cwd()
 
-    if not server_dir.exists():
+    # Check if we're in the server directory by looking for key files
+    if (
+        not (current_dir / "app.py").exists()
+        and not (current_dir / "requirements.txt").exists()
+    ):
         print(
-            f"{Colors.RED}Error: server directory not found at {server_dir}{Colors.END}"
+            f"{Colors.RED}Error: This script should be run from the server "
+            f"directory{Colors.END}"
         )
+        print(f"{Colors.YELLOW}Current directory: {current_dir}{Colors.END}")
         sys.exit(1)
-
-    # Change to server directory
-    os.chdir(server_dir)
 
     # Check if --fix flag is provided
     fix_mode = "--fix" in sys.argv
@@ -176,7 +186,7 @@ def main():
             f"{Colors.YELLOW}Running in fix mode - will auto-format code{Colors.END}\n"
         )
         linters = setup_linters()
-        success = format_code(linters, str(server_dir))
+        success = format_code(str(current_dir))
         if success:
             print(f"{Colors.GREEN}Code formatting completed successfully!{Colors.END}")
         else:
@@ -185,7 +195,7 @@ def main():
     else:
         # Run all linters
         linters = setup_linters()
-        results = run_linters(linters, str(server_dir))
+        results = run_linters(linters, str(current_dir))
 
         # Generate report
         all_passed = generate_report(results)
@@ -197,4 +207,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() 

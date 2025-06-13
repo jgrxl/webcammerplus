@@ -1,0 +1,123 @@
+name: Code Quality Check
+
+on:
+  push:
+    branches: [ main, develop, setup-linting-workflow ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-format:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Setup Node.js for JavaScript/HTML linting
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    # Setup Python for Python linting
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    # Install Node.js dependencies
+    - name: Install Node.js dependencies
+      run: npm ci
+
+    # Install Python dependencies
+    - name: Install Python linting dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r lint-requirements.txt
+
+    # JavaScript/Vue linting with ESLint
+    - name: Run ESLint on JavaScript/Vue files
+      run: npm run lint:js
+
+    # HTML linting with HTMLHint
+    - name: Run HTMLHint on HTML files
+      run: npm run lint:html
+
+    # CSS linting with Stylelint
+    - name: Run Stylelint on CSS files
+      run: npm run lint:css
+
+    # Python code formatting check with Black
+    - name: Check Python code formatting with Black
+      run: black --check --diff .
+
+    # Python code style check with Flake8
+    - name: Run Flake8 for Python style guide
+      run: flake8 .
+
+    # Python import sorting check with isort
+    - name: Check Python import sorting with isort
+      run: isort --check-only --diff .
+
+    # Python type checking with mypy
+    - name: Run mypy for Python type checking
+      run: mypy .
+
+    # Security check with bandit
+    - name: Run Bandit security linting
+      run: bandit -r . -f json -o bandit-report.json || true
+
+    # Upload bandit security report
+    - name: Upload Bandit security report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+
+  test-linting-rules:
+    name: Test Linting Rules
+    runs-on: ubuntu-latest
+    needs: lint-and-format
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        python -m pip install --upgrade pip
+        pip install -r lint-requirements.txt
+
+    # Verify all linters can run successfully
+    - name: Verify ESLint configuration
+      run: npx eslint --print-config .eslintrc.js
+
+    - name: Verify HTMLHint configuration
+      run: npx htmlhint --version
+
+    - name: Verify Stylelint configuration
+      run: npx stylelint --version
+
+    - name: Verify Python linters
+      run: |
+        black --version
+        flake8 --version
+        isort --version
+        mypy --version
+        bandit --version

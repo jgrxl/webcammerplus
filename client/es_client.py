@@ -1,26 +1,15 @@
-# server/client/es_client.py
-
-import json
 import os
+import json
+import elasticsearch
 
-from elasticsearch import Elasticsearch
-
-# -----------------------------------------------------------------------------
-# Configure your ES client however makes sense for your environment:
-#   - via environment variable ES_HOSTS (e.g. "http://localhost:9200")
-#   - defaulting to localhost
-# -----------------------------------------------------------------------------
-_ES_HOSTS = os.getenv("ES_HOSTS", "http://localhost:9200").split(",")
-es = Elasticsearch(_ES_HOSTS)
-
-
-def load_mappings():
+def load_mappings() -> None:
     """
     Load index mappings from JSON files in ../mappings/,
     creating each index if it doesn't already exist.
     Any error (BadRequest, HTTP, network) is caught and logged.
     """
-    # __file__ is server/client/es_client.py, so go up one to server/, then into mappings/
+    # __file__ is server/client/es_client.py, so go up one to server/, then into
+    # mappings/
     base_dir = os.path.dirname(__file__)
     mappings_dir = os.path.normpath(os.path.join(base_dir, "..", "mappings"))
 
@@ -32,7 +21,7 @@ def load_mappings():
         if not fname.endswith(".json"):
             continue
 
-        index_name = fname[:-5]  # strip “.json”
+        index_name = fname[:-5]  # strip ".json"
         mapping_path = os.path.join(mappings_dir, fname)
 
         with open(mapping_path, "r", encoding="utf-8") as f:
@@ -44,6 +33,6 @@ def load_mappings():
                 print(f"[es_client] Created index '{index_name}'.")
             else:
                 print(f"[es_client] Index '{index_name}' already exists.")
-        except Exception as err:
+        except (elasticsearch.ElasticsearchException, OSError, IOError) as err:
             # catches ElasticsearchException, HTTP errors, network issues, etc.
-            print(f"[es_client] load_mappings failed for '{index_name}': {err}")
+            print(f"[es_client] load_mappings failed for '{index_name}': {err}") 
