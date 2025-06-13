@@ -1,5 +1,6 @@
 # server/routes/translate.py
 from dataclasses import asdict, dataclass
+from typing import Optional
 
 from flask import Blueprint, Response, abort, jsonify, request
 

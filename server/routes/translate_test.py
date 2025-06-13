@@ -16,8 +16,8 @@ def app() -> Flask:
     return app
 
 
-def test_translate_success(test_app: Flask) -> None:
-    client = test_app.test_client()
+def test_translate_success(app: Flask) -> None:
+    client = app.test_client()
     resp = client.post("/translate/", json={"text": "hello world", "to_lang": "es"})
     assert resp.status_code == 200  # nosec B101 - Test assertion
     data = resp.get_json()
@@ -25,8 +25,8 @@ def test_translate_success(test_app: Flask) -> None:
     assert data["translation"] == "hello world"  # nosec B101 - Test assertion
 
 
-def test_translate_missing_fields(test_app: Flask) -> None:
-    client = test_app.test_client()
+def test_translate_missing_fields(app: Flask) -> None:
+    client = app.test_client()
     # Missing 'to_lang'
     resp = client.post("/translate/", json={"text": "hola"})
     assert (
@@ -39,8 +39,8 @@ def test_translate_missing_fields(test_app: Flask) -> None:
     )  # nosec B101 - Test assertion
 
 
-def test_translate_type_error(test_app: Flask) -> None:
-    client = test_app.test_client()
+def test_translate_type_error(app: Flask) -> None:
+    client = app.test_client()
     # Pass an extra unexpected field
     resp = client.post(
         "/translate/", json={"text": "hola", "to_lang": "en", "extra": 123}
