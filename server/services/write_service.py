@@ -1,11 +1,27 @@
-from server.services.write_service import write_text
+from ollama import Client
+
+OLLAMA_MODEL = "tinyllama:latest"
+OLLAMA_HOST = "http://localhost:11434"
+
+client = Client(host=OLLAMA_HOST)
 
 
-def test_write() -> None:
-    style = "formal"
-    text = "Hello, world!"
-    to_lang = "ES"
+def write_text(style: str, text: str, to_lang: str) -> str:
+    prompt = _build_prompt(style, text, to_lang)
+    response = client.chat(
+        model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}]
+    )
 
-    response = write_text(style, text, to_lang)
-    assert response is not None
-    assert response != ""
+    if response.message.content is None:
+        raise ValueError("No content in response")
+
+    return response.message.content
+
+
+def _build_prompt(
+    style: str,
+    text: str,
+    to_lang: str,
+) -> str:
+    prompt = f"Write a {style} text in {to_lang} " f"about the following text: {text}"
+    return prompt

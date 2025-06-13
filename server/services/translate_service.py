@@ -22,7 +22,10 @@ def translate_text(
         model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}]
     )
 
-    return response["message"]["content"]
+    if response.message.content is None:
+        raise ValueError("No content in response")
+
+    return response.message.content
 
 
 def _build_prompt(

@@ -6,16 +6,25 @@ OLLAMA_HOST = "http://localhost:11434"
 client = Client(host=OLLAMA_HOST)
 
 
-def reply_text(original_text, response_idea: str, style: str, to_lang: str) -> str:
+def reply_text(
+    original_text: str,
+    response_idea: str,
+    style: str,
+    to_lang: str,
+) -> str:
     prompt = _build_prompt(original_text, response_idea, style, to_lang)
     response = client.chat(
         model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}]
     )
-    return response["message"]["content"]
+
+    if response.message.content is None:
+        raise ValueError("No content in response")
+
+    return response.message.content
 
 
 def _build_prompt(
-    original_text,
+    original_text: str,
     response_idea: str,
     style: str,
     to_lang: str,

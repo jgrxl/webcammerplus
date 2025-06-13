@@ -6,7 +6,7 @@ from elasticsearch.exceptions import BadRequestError
 
 # Initialize Elasticsearch client from ES_HOSTS environment variable
 _ES_HOSTS = os.getenv("ES_HOSTS", "http://localhost:9200").split(",")
-es = Elasticsearch(_ES_HOSTS)  # type: ignore[arg-type]
+es = Elasticsearch(_ES_HOSTS)  # type: ignore[unused-ignore]
 
 
 def load_mappings() -> None:
