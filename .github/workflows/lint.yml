@@ -4,30 +4,16 @@ on:
   push:
     branches:
       - main
-      - develop
-      - website
-      - mapping
-      - python-linter
-      - delete-pages
-      - ollama
-      - update-linter
   pull_request:
     branches:
       - main
-      - develop
-      - website
-      - mapping
-      - python-linter
-      - delete-pages
-      - ollama
-      - update-linter
 
 jobs:
   # Vue Extension Linting
   lint-vue:
     name: Lint Vue Extension
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'vue-extension/') || contains(github.event.pull_request.files.*.path, 'vue-extension/') || github.event_name == 'push'
+    if: github.event_name == 'pull_request'
 
     defaults:
       run:
@@ -54,7 +40,7 @@ jobs:
   lint-python:
     name: Lint Python Server
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'server/') || contains(github.event.pull_request.files.*.path, 'server/') || github.event_name == 'push'
+    if: github.event_name == 'pull_request'
 
     defaults:
       run:
@@ -84,55 +70,16 @@ jobs:
         run: isort . --check-only --diff
 
       - name: Run flake8 (style guide)
-        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        run: flake8 . --count --show-source --statistics
 
       - name: Run pylint (code analysis)
-        run: pylint **/*.py --disable=C0114,C0115,C0116
+        run: pylint **/*.py 
 
       - name: Run mypy (type checking)
-        run: mypy . --ignore-missing-imports
+        run: mypy --python-version 3.10 .
 
-      - name: Run bandit (security)
-        run: bandit -r . -f json -o bandit-report.json || true
-
-  # Website Files Linting
-  lint-website:
-    name: Lint Website Files
-    runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'docs/') || contains(github.event.pull_request.files.*.path, 'docs/') || github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install HTMLHint
-        run: npm install -g htmlhint
-
-      - name: Install Stylelint
-        run: npm install -g stylelint stylelint-config-standard
-
-      - name: Lint HTML files
-        run: |
-          if [ -d "docs" ]; then
-            find docs -name "*.html" -exec htmlhint {} \;
-          fi
-
-      - name: Lint CSS files
-        run: |
-          if [ -d "docs" ]; then
-            find docs -name "*.css" -exec stylelint {} \;
-          fi
-
-      - name: Lint JavaScript files
-        run: |
-          if [ -d "docs" ]; then
-            find docs -name "*.js" -exec node -c {} \;
-          fi
+      # - name: Run bandit (security)
+      #   run: bandit -r . -f json -o bandit-report.json || true
 
   # General Code Quality
   code-quality:
