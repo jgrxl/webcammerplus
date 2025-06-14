@@ -1,7 +1,7 @@
 flask>=2.3.3
+flask-cors>=4.0.0
 python-dotenv>=0.19.2
 authlib>=1.0
 requests>=2.27.1
 elasticsearch==8.0
-ollama==0.5.1
 

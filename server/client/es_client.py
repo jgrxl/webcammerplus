@@ -16,7 +16,7 @@ def load_mappings() -> None:
     Any error (BadRequest, HTTP, network) is caught and logged.
     """
     base_dir = os.path.dirname(__file__)
-    mappings_dir = os.path.normpath(os.path.join(base_dir, "..", "mappings"))
+    mappings_dir = os.path.normpath(os.path.join(base_dir, "..", "mapping"))
 
     if not os.path.isdir(mappings_dir):
         print(f"[es_client] mappings directory not found: {mappings_dir}")

@@ -3,7 +3,7 @@ import html
 import pytest
 from flask import Flask
 
-from server.routes.translate_route import bp as translate_bp
+from routes.translate_route import bp as translate_bp
 
 
 @pytest.fixture(name="app")

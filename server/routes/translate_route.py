@@ -1,7 +1,7 @@
 from dataclasses import asdict, dataclass
 from typing import Optional
 from flask import Blueprint, Response, abort, jsonify, request
-from server.services.translate_service import translate_text
+from services.translate_service import translate_text
 
 
 bp = Blueprint("translate", __name__, url_prefix="/translate")

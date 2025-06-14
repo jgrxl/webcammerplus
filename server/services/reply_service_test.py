@@ -1,4 +1,4 @@
-from server.services.reply_service import reply_text
+from services.reply_service import reply_text
 
 
 def test_reply() -> None:
