@@ -3,9 +3,9 @@
 
 class NovitaAPI {
   constructor() {
-    this.apiKey = 'sk_Z2EJOtHGNf5Nv2tgSoouT6PZzbXoY3UoLjpn5C5cYkE';
-    this.baseURL = 'https://api.novita.ai';
-    this.isConfigured = true;
+    this.apiKey = import.meta.env.VITE_NOVITA_API_KEY;
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api.novita.ai';
+    this.isConfigured = !!this.apiKey;
   }
   
 
