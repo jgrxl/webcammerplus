@@ -5,6 +5,7 @@ from typing import Optional, List, Union
 
 from client.influx_client import InfluxDBClient
 from influxdb_client.client.exceptions import InfluxDBError
+from utils.query_builder import FluxQueryBuilder, AggregateFunction
 
 
 logger = logging.getLogger(__name__)
@@ -131,14 +132,15 @@ class InfluxDBService:
         try:
             self._validate_days_parameter(days)
 
-            query = f"""
-                from(bucket: "{self.bucket}")
-                    |> range(start: -{days}d)
-                    |> filter(fn: (r) => r._measurement == "{self.MEASUREMENT_NAME}")
-                    |> filter(fn: (r) => r.method == "{self.TIP_METHOD}")
-                    |> filter(fn: (r) => r._field == "{self.TIP_TOKENS_FIELD}")
-                    |> sum(column: "_value")
-            """
+            # Build query using QueryBuilder
+            query = (FluxQueryBuilder()
+                    .from_bucket(self.bucket)
+                    .range(f"-{days}d")
+                    .measurement(self.MEASUREMENT_NAME)
+                    .filter("method", "==", self.TIP_METHOD)
+                    .field(self.TIP_TOKENS_FIELD)
+                    .aggregate(AggregateFunction.SUM)
+                    .build())
 
             logger.debug(f"Executing tips query for {days} days")
             tables = self.query_api.query(query=query, org=self.org)
@@ -195,19 +197,21 @@ class InfluxDBService:
             if limit > 100:
                 raise ValueError(f"Limit cannot exceed 100, got {limit}")
 
-            flux_query = f"""
-                from(bucket: "{self.bucket}")
-                    |> range(start: -{days}d)
-                    |> filter(fn: (r) => r._measurement == "{self.MEASUREMENT_NAME}")
-                    |> filter(fn: (r) => r.method == "{self.CHAT_METHOD}")
-                    |> filter(fn: (r) => r._field == "{self.USERNAME_FIELD}")
-                    |> filter(fn: (r) => r._value != "" and r._value != null)
-                    |> map(fn: (r) => ({{ r with user: r._value }}))
-                    |> group(columns: ["user"])
-                    |> count()
-                    |> sort(columns: ["_value"], desc: true)
-                    |> limit(n: {limit})
-            """
+            # Build query using QueryBuilder
+            flux_query = (FluxQueryBuilder()
+                         .from_bucket(self.bucket)
+                         .range(f"-{days}d")
+                         .measurement(self.MEASUREMENT_NAME)
+                         .filter("method", "==", self.CHAT_METHOD)
+                         .field(self.USERNAME_FIELD)
+                         .filter("_value", "!=", "")
+                         .filter("_value", "!=", None)
+                         .custom('map(fn: (r) => ({ r with user: r._value }))')
+                         .group_by(["user"])
+                         .aggregate(AggregateFunction.COUNT)
+                         .sort("_value", desc=True)
+                         .limit(limit)
+                         .build())
 
             logger.debug(f"Executing top chatters query for {days} days, limit {limit}")
             tables = self.query_api.query(query=flux_query, org=self.org)

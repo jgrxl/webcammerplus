@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - WebCammer+</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 3px solid #667eea;
+        }
+        
+        .profile-details h1 {
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+        
+        .profile-details p {
+            color: #718096;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card h2 {
+            color: #2d3748;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .subscription-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-free {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .status-pro {
+            background: #bee3f8;
+            color: #2b6cb0;
+        }
+        
+        .status-max {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        
+        .status-inactive {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .usage-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .usage-item:last-child {
+            border-bottom: none;
+        }
+        
+        .usage-label {
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .usage-bar {
+            flex: 1;
+            margin: 0 16px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .usage-text {
+            font-size: 0.875rem;
+            color: #718096;
+            min-width: 80px;
+            text-align: right;
+        }
+        
+        .features-list {
+            list-style: none;
+        }
+        
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        .feature-enabled {
+            background: #48bb78;
+        }
+        
+        .feature-disabled {
+            background: #cbd5e0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(0, 0, 0, 0.1);
+            color: #4a5568;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .pricing-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            border-color: #667eea;
+        }
+        
+        .pricing-card.current {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+        
+        .price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .price-cycle {
+            font-size: 0.875rem;
+            color: #718096;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-info {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="profile-info">
+                <img id="profileAvatar" class="profile-avatar" src="" alt="Profile" style="display: none;">
+                <div class="profile-details">
+                    <h1 id="profileName">Loading...</h1>
+                    <p id="profileEmail"></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Subscription Info -->
+            <div class="card">
+                <h2>
+                    🎯 Subscription
+                    <span id="subscriptionBadge" class="subscription-status">Loading...</span>
+                </h2>
+                
+                <div id="subscriptionContent">
+                    <div class="loading">Loading subscription details...</div>
+                </div>
+            </div>
+            
+            <!-- Usage Statistics -->
+            <div class="card">
+                <h2>📊 Usage Statistics</h2>
+                
+                <div id="usageContent">
+                    <div class="loading">Loading usage data...</div>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="card">
+                <h2>✨ Features</h2>
+                
+                <ul id="featuresList" class="features-list">
+                    <li class="loading">Loading features...</li>
+                </ul>
+            </div>
+            
+            <!-- Upgrade Options -->
+            <div class="card">
+                <h2>⬆️ Upgrade Options</h2>
+                
+                <div id="upgradeContent">
+                    <div class="loading">Loading pricing...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="novita-api.js"></script>
+    <script>
+        class ProfileManager {
+            constructor() {
+                this.api = new WebCammerAPI();
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    await this.loadProfile();
+                    await this.loadUsage();
+                    await this.loadPricing();
+                } catch (error) {
+                    console.error('Failed to load profile:', error);
+                    this.showError('Failed to load profile data');
+                }
+            }
+            
+            async loadProfile() {
+                try {
+                    const authToken = await this.getAuthToken();
+                    const response = await fetch('/api/v1/auth/profile', {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to load profile');
+                    }
+                    
+                    const profile = await response.json();
+                    this.displayProfile(profile);
+                } catch (error) {
+                    console.error('Profile load error:', error);
+                    // Redirect to login if unauthorized
+                    if (error.message.includes('401')) {
+                        window.location.href = '/auth/login?return_to=' + encodeURIComponent(window.location.href);
+                    }
+                }
+            }
+            
+            async loadUsage() {
+                try {
+                    const authToken = await this.getAuthToken();
+                    const response = await fetch('/api/v1/auth/usage', {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to load usage');
+                    }
+                    
+                    const usage = await response.json();
+                    this.displayUsage(usage);
+                    this.displayFeatures(usage.features);
+                } catch (error) {
+                    console.error('Usage load error:', error);
+                }
+            }
+            
+            async loadPricing() {
+                try {
+                    const response = await fetch('/api/v1/auth/pricing');
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to load pricing');
+                    }
+                    
+                    const pricing = await response.json();
+                    this.displayPricing(pricing);
+                } catch (error) {
+                    console.error('Pricing load error:', error);
+                }
+            }
+            
+            displayProfile(profile) {
+                document.getElementById('profileName').textContent = profile.name || 'Unknown User';
+                document.getElementById('profileEmail').textContent = profile.email || '';
+                
+                if (profile.picture) {
+                    const avatar = document.getElementById('profileAvatar');
+                    avatar.src = profile.picture;
+                    avatar.style.display = 'block';
+                }
+                
+                // Update subscription badge
+                const badge = document.getElementById('subscriptionBadge');
+                badge.textContent = profile.subscription_tier.toUpperCase();
+                badge.className = `subscription-status status-${profile.subscription_tier}`;
+            }
+            
+            displayUsage(usage) {
+                const content = document.getElementById('usageContent');
+                const usageHtml = Object.entries(usage.usage).map(([key, data]) => {
+                    const percentage = data.limit === 'unlimited' ? 0 : (data.used / data.limit) * 100;
+                    const limitText = data.limit === 'unlimited' ? '∞' : data.limit;
+                    
+                    return `
+                        <div class="usage-item">
+                            <span class="usage-label">${this.formatUsageLabel(key)}</span>
+                            <div class="usage-bar">
+                                <div class="usage-fill" style="width: ${Math.min(percentage, 100)}%"></div>
+                            </div>
+                            <span class="usage-text">${data.used} / ${limitText}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                content.innerHTML = usageHtml;
+            }
+            
+            displayFeatures(features) {
+                const list = document.getElementById('featuresList');
+                const featuresHtml = Object.entries(features).map(([key, enabled]) => {
+                    const iconClass = enabled ? 'feature-enabled' : 'feature-disabled';
+                    return `
+                        <li>
+                            <span class="feature-icon ${iconClass}"></span>
+                            ${this.formatFeatureLabel(key)}
+                        </li>
+                    `;
+                }).join('');
+                
+                list.innerHTML = featuresHtml;
+            }
+            
+            displayPricing(pricing) {
+                const content = document.getElementById('upgradeContent');
+                const pricingHtml = Object.entries(pricing).map(([tier, data]) => `
+                    <div class="pricing-card">
+                        <h3>${data.display_name}</h3>
+                        <div class="price">$${data.monthly_price}</div>
+                        <div class="price-cycle">per month</div>
+                        <button class="btn" onclick="profileManager.subscribe('${tier}', 'monthly')">
+                            Upgrade to ${data.display_name}
+                        </button>
+                    </div>
+                `).join('');
+                
+                content.innerHTML = `
+                    <div class="pricing-grid">
+                        ${pricingHtml}
+                    </div>
+                    <div style="margin-top: 20px; text-align: center;">
+                        <a href="#" onclick="profileManager.manageBilling()" class="btn btn-secondary">
+                            Manage Billing
+                        </a>
+                    </div>
+                `;
+            }
+            
+            async subscribe(tier, cycle) {
+                try {
+                    const authToken = await this.getAuthToken();
+                    const response = await fetch('/api/v1/subscription/checkout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            tier: tier,
+                            billing_cycle: cycle,
+                            success_url: window.location.href + '?success=true',
+                            cancel_url: window.location.href + '?cancelled=true'
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to create checkout session');
+                    }
+                    
+                    const data = await response.json();
+                    window.location.href = data.checkout_url;
+                } catch (error) {
+                    console.error('Subscription error:', error);
+                    alert('Failed to start subscription process. Please try again.');
+                }
+            }
+            
+            async manageBilling() {
+                try {
+                    const authToken = await this.getAuthToken();
+                    const response = await fetch('/api/v1/subscription/billing-portal', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            return_url: window.location.href
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to create billing portal session');
+                    }
+                    
+                    const data = await response.json();
+                    window.location.href = data.portal_url;
+                } catch (error) {
+                    console.error('Billing portal error:', error);
+                    alert('Failed to open billing portal. Please try again.');
+                }
+            }
+            
+            formatUsageLabel(key) {
+                const labels = {
+                    translations: 'Translations',
+                    replies: 'Reply Generation',
+                    writes: 'Text Generation',
+                    influx_queries: 'Analytics Queries'
+                };
+                return labels[key] || key;
+            }
+            
+            formatFeatureLabel(key) {
+                const labels = {
+                    api_access: 'API Access',
+                    priority_support: 'Priority Support',
+                    custom_styles: 'Custom Styles',
+                    batch_operations: 'Batch Operations'
+                };
+                return labels[key] || key;
+            }
+            
+            async getAuthToken() {
+                try {
+                    // Try to get token from Auth0 service first
+                    if (window.getAuth0Service) {
+                        const auth0Service = await window.getAuth0Service();
+                        const token = await auth0Service.getToken();
+                        if (token) {
+                            return token;
+                        }
+                    }
+                    
+                    // Fallback to localStorage
+                    return localStorage.getItem('auth_token') || '';
+                } catch (error) {
+                    console.error('Failed to get auth token:', error);
+                    return localStorage.getItem('auth_token') || '';
+                }
+            }
+            
+            showError(message) {
+                const container = document.querySelector('.container');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = message;
+                container.insertBefore(errorDiv, container.firstChild);
+            }
+        }
+        
+        // Initialize profile manager
+        const profileManager = new ProfileManager();
+        
+        // Handle URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+            alert('Subscription successful! Your account has been upgraded.');
+        } else if (urlParams.get('cancelled') === 'true') {
+            alert('Subscription cancelled. You can try again anytime.');
+        }
+    </script>
+</body>
+</html>

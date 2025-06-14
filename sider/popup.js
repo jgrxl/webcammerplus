@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   const { createApp } = Vue;
   
-  createApp({
+  const app = createApp({
     data() {
       return {
         title: 'Sider AI',
@@ -185,7 +185,10 @@ document.addEventListener('DOMContentLoaded', function() {
       
       async toggleAuth() {
         if (this.isAuthenticated) {
-          await this.logout();
+          // Show user menu dropdown instead of logging out
+          if (window.userMenu) {
+            window.userMenu.toggleDropdown();
+          }
         } else {
           await this.login();
         }
@@ -193,7 +196,12 @@ document.addEventListener('DOMContentLoaded', function() {
       
       async login() {
         try {
-          await window.auth0Service.login();
+          const auth0Service = await window.getAuth0Service();
+          await auth0Service.login();
+          // Refresh user menu after login
+          if (window.userMenu) {
+            await window.userMenu.refresh();
+          }
         } catch (error) {
           console.error('Login failed:', error);
         }
@@ -201,7 +209,8 @@ document.addEventListener('DOMContentLoaded', function() {
       
       async logout() {
         try {
-          await window.auth0Service.logout();
+          const auth0Service = await window.getAuth0Service();
+          await auth0Service.logout();
           this.isAuthenticated = false;
           this.user = null;
         } catch (error) {
@@ -210,21 +219,31 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       
       async checkAuthStatus() {
-        if (window.auth0Service) {
-          this.isAuthenticated = window.auth0Service.isAuthenticated;
-          this.user = window.auth0Service.user;
+        try {
+          const auth0Service = await window.getAuth0Service();
+          this.isAuthenticated = auth0Service.isAuthenticated;
+          this.user = auth0Service.user;
+          
+          // Get fresh token if authenticated
+          if (this.isAuthenticated) {
+            await auth0Service.getToken();
+          }
+        } catch (error) {
+          console.error('Auth status check failed:', error);
+          this.isAuthenticated = false;
+          this.user = null;
         }
       }
     },
     
     async mounted() {
-      // Initialize Auth0 service
-      window.auth0Service = new Auth0Service();
+      // Check auth status after component mounts
+      await this.checkAuthStatus();
       
-      // Wait a bit for Auth0 to initialize, then check status
-      setTimeout(async () => {
-        await this.checkAuthStatus();
-      }, 1000);
+      // Refresh user menu to sync authentication state
+      if (window.userMenu) {
+        await window.userMenu.refresh();
+      }
       
       // Add welcome message after component mounts
       setTimeout(() => {
@@ -237,5 +256,8 @@ document.addEventListener('DOMContentLoaded', function() {
         this.messages.push(welcomeMessage);
       }, 500);
     }
-  }).mount('#app');
+  });
+  
+  const vueApp = app.mount('#app');
+  window.vueApp = vueApp;
 });

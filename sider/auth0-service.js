@@ -1,58 +1,111 @@
-// Auth0 Service for Sider AI Clone
+// Auth0 Service for WebCammer+
 class Auth0Service {
   constructor() {
     this.auth0Client = null;
     this.isAuthenticated = false;
     this.user = null;
+    this.initialized = false;
+    this.initPromise = null;
     
-    // Auth0 configuration
+    // Auth0 configuration - these should be environment variables in production
     this.config = {
       domain: 'dev-4xh5xi1xfh7w7y2n.us.auth0.com',
       clientId: '57sIYSODLSDddlyQVokooAFjTEHDNRYo',
-      redirectUri: window.location.origin
+      redirectUri: window.location.origin,
+      audience: 'https://dev-4xh5xi1xfh7w7y2n.us.auth0.com/api/v2/' // Your Auth0 API identifier
     };
-    
-    this.init();
   }
   
   async init() {
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+    
+    this.initPromise = this._doInit();
+    return this.initPromise;
+  }
+  
+  async _doInit() {
     try {
+      // Check if Auth0 SDK is loaded
+      if (typeof auth0 === 'undefined' || !auth0.createAuth0Client) {
+        throw new Error('Auth0 SDK not loaded. Make sure to include the Auth0 SPA SDK script.');
+      }
+      
+      console.log('Initializing Auth0 client...');
+      
       // Initialize Auth0 client
       this.auth0Client = await auth0.createAuth0Client({
         domain: this.config.domain,
         clientId: this.config.clientId,
         authorizationParams: {
-          redirect_uri: this.config.redirectUri
-        }
+          redirect_uri: this.config.redirectUri,
+          audience: this.config.audience,
+          scope: 'openid profile email'
+        },
+        cacheLocation: 'localstorage', // Use localStorage for token caching
+        useRefreshTokens: true
       });
       
-      // Check if user is authenticated
-      this.isAuthenticated = await this.auth0Client.isAuthenticated();
+      console.log('Auth0 client initialized successfully');
       
-      if (this.isAuthenticated) {
-        this.user = await this.auth0Client.getUser();
-      }
-      
-      // Handle redirect callback
-      if (window.location.search.includes("code=")) {
+      // Handle redirect callback first
+      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
+        console.log('Handling redirect callback...');
         await this.handleRedirectCallback();
       }
       
+      // Check if user is authenticated
+      this.isAuthenticated = await this.auth0Client.isAuthenticated();
+      console.log('Authentication status:', this.isAuthenticated);
+      
+      if (this.isAuthenticated) {
+        this.user = await this.auth0Client.getUser();
+        console.log('Authenticated user:', this.user);
+      }
+      
+      this.initialized = true;
+      
     } catch (error) {
       console.error('Auth0 initialization error:', error);
+      this.initialized = false;
+      throw error;
+    }
+  }
+  
+  async ensureInitialized() {
+    if (!this.initialized) {
+      await this.init();
+    }
+    
+    if (!this.auth0Client) {
+      throw new Error('Auth0 client not initialized');
     }
   }
   
   async login() {
     try {
-      await this.auth0Client.loginWithRedirect();
+      await this.ensureInitialized();
+      
+      console.log('Starting login flow...');
+      await this.auth0Client.loginWithRedirect({
+        authorizationParams: {
+          redirect_uri: this.config.redirectUri,
+          audience: this.config.audience,
+          scope: 'openid profile email'
+        }
+      });
     } catch (error) {
       console.error('Login error:', error);
+      throw error;
     }
   }
   
   async logout() {
     try {
+      await this.ensureInitialized();
+      
+      console.log('Starting logout flow...');
       await this.auth0Client.logout({
         logoutParams: {
           returnTo: window.location.origin
@@ -60,45 +113,157 @@ class Auth0Service {
       });
     } catch (error) {
       console.error('Logout error:', error);
+      throw error;
     }
   }
   
   async handleRedirectCallback() {
     try {
-      await this.auth0Client.handleRedirectCallback();
+      if (!this.auth0Client) {
+        throw new Error('Auth0 client not initialized');
+      }
+      
+      console.log('Processing redirect callback...');
+      const result = await this.auth0Client.handleRedirectCallback();
+      
+      this.isAuthenticated = await this.auth0Client.isAuthenticated();
+      
+      if (this.isAuthenticated) {
+        this.user = await this.auth0Client.getUser();
+        console.log('Login successful, user:', this.user);
+      }
+      
+      // Remove code and state from URL
+      const url = new URL(window.location);
+      url.searchParams.delete('code');
+      url.searchParams.delete('state');
+      window.history.replaceState({}, document.title, url.toString());
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Redirect callback error:', error);
+      
+      // Remove code and state from URL even on error
+      const url = new URL(window.location);
+      url.searchParams.delete('code');
+      url.searchParams.delete('state');
+      window.history.replaceState({}, document.title, url.toString());
+      
+      throw error;
+    }
+  }
+  
+  async getUser() {
+    try {
+      await this.ensureInitialized();
+      
+      if (this.isAuthenticated && this.auth0Client) {
+        return await this.auth0Client.getUser();
+      }
+      return null;
+    } catch (error) {
+      console.error('Get user error:', error);
+      return null;
+    }
+  }
+  
+  async getToken() {
+    try {
+      await this.ensureInitialized();
+      
+      if (this.isAuthenticated && this.auth0Client) {
+        const token = await this.auth0Client.getTokenSilently({
+          authorizationParams: {
+            audience: this.config.audience,
+            scope: 'openid profile email'
+          }
+        });
+        
+        // Store token for API calls
+        localStorage.setItem('auth_token', token);
+        return token;
+      }
+      return null;
+    } catch (error) {
+      console.error('Token error:', error);
+      
+      // If token refresh fails, try login again
+      if (error.error === 'login_required' || error.error === 'consent_required') {
+        console.log('Token refresh failed, redirecting to login...');
+        await this.login();
+      }
+      
+      return null;
+    }
+  }
+  
+  async checkSession() {
+    try {
+      await this.ensureInitialized();
+      
+      // Try to get token silently to check if session is valid
+      await this.getToken();
+      
       this.isAuthenticated = await this.auth0Client.isAuthenticated();
       
       if (this.isAuthenticated) {
         this.user = await this.auth0Client.getUser();
       }
       
-      // Remove code from URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-      
+      return this.isAuthenticated;
     } catch (error) {
-      console.error('Redirect callback error:', error);
+      console.error('Session check error:', error);
+      this.isAuthenticated = false;
+      this.user = null;
+      return false;
     }
   }
   
-  async getUser() {
-    if (this.isAuthenticated && this.auth0Client) {
-      return await this.auth0Client.getUser();
-    }
-    return null;
+  // Helper method to check if Auth0 SDK is loaded
+  static isAuth0SDKLoaded() {
+    return typeof auth0 !== 'undefined' && auth0.createAuth0Client;
   }
   
-  async getToken() {
-    if (this.isAuthenticated && this.auth0Client) {
-      try {
-        return await this.auth0Client.getTokenSilently();
-      } catch (error) {
-        console.error('Token error:', error);
-        return null;
-      }
+  // Static method to load Auth0 SDK if not already loaded
+  static async loadAuth0SDK() {
+    if (Auth0Service.isAuth0SDKLoaded()) {
+      return Promise.resolve();
     }
-    return null;
+    
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js';
+      script.onload = () => {
+        console.log('Auth0 SDK loaded successfully');
+        resolve();
+      };
+      script.onerror = () => {
+        console.error('Failed to load Auth0 SDK');
+        reject(new Error('Failed to load Auth0 SDK'));
+      };
+      document.head.appendChild(script);
+    });
   }
+}
+
+// Global instance
+let auth0Service = null;
+
+// Function to get Auth0 service instance
+async function getAuth0Service() {
+  if (!auth0Service) {
+    // Load Auth0 SDK if needed
+    await Auth0Service.loadAuth0SDK();
+    
+    // Create and initialize service
+    auth0Service = new Auth0Service();
+    await auth0Service.init();
+  }
+  
+  return auth0Service;
 }
 
 // Export for use in other files
 window.Auth0Service = Auth0Service;
+window.getAuth0Service = getAuth0Service;
