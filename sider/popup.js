@@ -227,12 +227,32 @@ document.addEventListener('DOMContentLoaded', function() {
           // Get fresh token if authenticated
           if (this.isAuthenticated) {
             await auth0Service.getToken();
+            // Add sample credits if not present
+            if (this.user && !this.user.credits) {
+              this.user.credits = 40;
+            }
           }
         } catch (error) {
           console.error('Auth status check failed:', error);
           this.isAuthenticated = false;
           this.user = null;
         }
+      },
+
+      showUpgradeModal() {
+        alert('Upgrade to Pro for 35% OFF! 🚀\n\nUnlock unlimited credits and premium features.');
+      },
+
+      toggleFavorites() {
+        alert('Favorites feature coming soon! ❤️');
+      },
+
+      showHelpModal() {
+        alert('Need help? 🤔\n\nContact our support team or check our documentation.');
+      },
+
+      showContactModal() {
+        alert('Get in touch! 📧\n\nEmail us at support@webcammerplus.com');
       }
     },
     
