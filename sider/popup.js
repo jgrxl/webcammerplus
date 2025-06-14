@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
         translateFromLang: 'auto',
         translateToLang: 'en',
         showHome: false,
-        activeHomeTab: 'dashboard',
+        showAnalytics: false,
+        activeAnalyticsTab: 'dashboard',
         isAuthenticated: false,
         user: null
       }
@@ -176,12 +177,24 @@ document.addEventListener('DOMContentLoaded', function() {
           this.showChat = false;
           this.showEdit = false;
           this.showTranslate = false;
+          this.showAnalytics = false;
+        }
+      },
+
+      toggleAnalytics() {
+        this.showAnalytics = !this.showAnalytics;
+        if (this.showAnalytics) {
+          this.showChat = false;
+          this.showEdit = false;
+          this.showTranslate = false;
+          this.showHome = false;
         }
       },
       
-      switchHomeTab(tab) {
-        this.activeHomeTab = tab;
+      switchAnalyticsTab(tab) {
+        this.activeAnalyticsTab = tab;
       },
+
       
       async toggleAuth() {
         if (this.isAuthenticated) {

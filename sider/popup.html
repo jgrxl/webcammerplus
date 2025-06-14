@@ -11,8 +11,8 @@
       <!-- Main content area -->
       <div class="main-content">
         <!-- Default Welcome View -->
-        <div v-if="!showChat && !showEdit && !showTranslate && !showHome">
-          <h1>Sider AI Clone</h1>
+        <div v-if="!showChat && !showEdit && !showTranslate && !showHome && !showAnalytics">
+          <h1>WebCammer+</h1>
           <p>Welcome to your AI assistant application.</p>
         </div>
         
@@ -235,22 +235,36 @@
           </div>
         </div>
         
-        <!-- Home Content -->
+        <!-- Home Content (Blank for now) -->
         <div v-if="showHome" class="home-content">
-          <!-- Home Header -->
           <div class="content-header">
-            <h1>Chaturbate Model Helper</h1>
+            <h1>Home</h1>
+          </div>
+          <div class="blank-content">
+            <div class="blank-placeholder">
+              <div class="blank-icon">🏠</div>
+              <h2>Welcome Home</h2>
+              <p>This is your homepage. Content coming soon!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Content -->
+        <div v-if="showAnalytics" class="analytics-content">
+          <!-- Analytics Header -->
+          <div class="content-header">
+            <h1>Analytics Dashboard</h1>
           </div>
           
-          <!-- Home Tabs -->
-          <div class="home-tabs">
-            <div :class="['home-tab', activeHomeTab === 'dashboard' ? 'active' : '']" @click="switchHomeTab('dashboard')">Dashboard</div>
-            <div :class="['home-tab', activeHomeTab === 'top-tippers' ? 'active' : '']" @click="switchHomeTab('top-tippers')">Top Tippers</div>
-            <div :class="['home-tab', activeHomeTab === 'analytics' ? 'active' : '']" @click="switchHomeTab('analytics')">Analytics</div>
-            <div :class="['home-tab', activeHomeTab === 'settings' ? 'active' : '']" @click="switchHomeTab('settings')">Settings</div>
+          <!-- Analytics Tabs -->
+          <div class="analytics-tabs">
+            <div :class="['analytics-tab', activeAnalyticsTab === 'dashboard' ? 'active' : '']" @click="switchAnalyticsTab('dashboard')">Dashboard</div>
+            <div :class="['analytics-tab', activeAnalyticsTab === 'top-tippers' ? 'active' : '']" @click="switchAnalyticsTab('top-tippers')">Top Tippers</div>
+            <div :class="['analytics-tab', activeAnalyticsTab === 'performance' ? 'active' : '']" @click="switchAnalyticsTab('performance')">Performance</div>
+            <div :class="['analytics-tab', activeAnalyticsTab === 'settings' ? 'active' : '']" @click="switchAnalyticsTab('settings')">Settings</div>
           </div>
           
-          <div v-if="activeHomeTab === 'dashboard'" class="dashboard-content">
+          <div v-if="activeAnalyticsTab === 'dashboard'" class="dashboard-content">
             <div class="stats-grid">
               <div class="stat-card">
                 <div class="stat-value">127</div>
@@ -276,7 +290,7 @@
             </div>
           </div>
           
-          <div v-if="activeHomeTab === 'top-tippers'" class="top-tippers-content">
+          <div v-if="activeAnalyticsTab === 'top-tippers'" class="top-tippers-content">
             <div class="tippers-header">
               <h3>Top Tippers This Week</h3>
               <select class="time-filter">
@@ -313,7 +327,7 @@
             </div>
           </div>
           
-          <div v-if="activeHomeTab === 'analytics'" class="analytics-content">
+          <div v-if="activeAnalyticsTab === 'performance'" class="performance-content">
             <h3>Performance Analytics</h3>
             <div class="analytics-placeholder">
               <div class="chart-placeholder">
@@ -327,8 +341,8 @@
             </div>
           </div>
           
-          <div v-if="activeHomeTab === 'settings'" class="settings-content">
-            <h3>Model Helper Settings</h3>
+          <div v-if="activeAnalyticsTab === 'settings'" class="settings-content">
+            <h3>Analytics Settings</h3>
             <div class="settings-section">
               <label class="setting-label">Notification Preferences</label>
               <div class="setting-options">
@@ -376,6 +390,12 @@
         <div class="sidebar-icon translate-icon" @click="toggleTranslate">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 8l6 6M4 14l6-6M2 5h12M7 2h1l8 22M17 8h5M23 8v1a4 4 0 0 1-4 4"/>
+          </svg>
+        </div>
+        <div class="sidebar-icon analytics-icon" @click="toggleAnalytics">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3v18h18"/>
+            <path d="M7 12l4-4 4 4 6-6"/>
           </svg>
         </div>
         <div :class="['sidebar-icon', 'profile-icon', isAuthenticated ? 'authenticated' : 'unauthenticated']" @click="toggleAuth" :title="isAuthenticated ? `Logout ${user?.name || 'User'}` : 'Login'">
