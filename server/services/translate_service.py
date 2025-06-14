@@ -4,7 +4,7 @@ import requests
 from typing import Optional
 
 # Novita API Configuration
-NOVITA_API_KEY = os.getenv("NOVITA_API_KEY", "sk_Z2EJOtHGNf5Nv2tgSoouT6PZzbXoY3UoLjpn5C5cYkE")
+NOVITA_API_KEY = os.getenv("NOVITA_API_KEY")
 NOVITA_BASE_URL = "https://api.novita.ai"
 NOVITA_MODEL = "meta-llama/llama-3.2-3b-instruct"
 
