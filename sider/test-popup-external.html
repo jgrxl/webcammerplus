@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: monospace;
+      background: #f0f0f0;
+    }
+    .test {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+    .success { border-color: green; background: #e8f5e8; }
+    .error { border-color: red; background: #ffe8e8; }
+    .info { border-color: blue; background: #e8f0ff; }
+  </style>
+</head>
+<body>
+  <h2>Vue Debug Test (External JS)</h2>
+  
+  <div id="test1" class="test">
+    <strong>Test 1:</strong> Check if vue.js file exists
+    <div id="result1">Testing...</div>
+  </div>
+  
+  <div id="test2" class="test">
+    <strong>Test 2:</strong> Check Vue global before load
+    <div id="result2">Testing...</div>
+  </div>
+  
+  <div id="test3" class="test">
+    <strong>Test 3:</strong> Try loading vue.js
+    <div id="result3">Testing...</div>
+  </div>
+  
+  <div id="test4" class="test">
+    <strong>Test 4:</strong> Test Vue functionality
+    <div id="result4">Testing...</div>
+  </div>
+  
+  <div id="test5" class="test" style="display: none;">
+    <strong>Test 5:</strong> Alternative paths
+    <div id="result5">Testing...</div>
+  </div>
+  
+  <div id="errorLog" class="test error" style="display: none;">
+    <strong>Errors:</strong>
+    <div id="errors"></div>
+  </div>
+
+  <script src="test-popup.js"></script>
+</body>
+</html>

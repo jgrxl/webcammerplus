@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Sider AI Clone",
+  "version": "1.0.0",
+  "description": "AI assistant for webpage analysis",
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

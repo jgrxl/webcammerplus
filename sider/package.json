@@ -1,0 +1,24 @@
+{
+  "name": "sider-ai-clone",
+  "version": "1.0.0",
+  "description": "AI-powered browser extension",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --watch",
+    "serve": "vite",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@auth0/auth0-spa-js": "^2.1.3",
+    "@tailwindcss/postcss": "^4.1.10",
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4.1.10",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Main page layout with sidebar -->
+    <div class="main-layout">
+      <!-- Main content area -->
+      <div class="main-content">
+        <!-- Default Welcome View -->
+        <div v-if="!showChat && !showEdit && !showTranslate && !showHome">
+          <h1>Sider AI Clone</h1>
+          <p>Welcome to your AI assistant application.</p>
+        </div>
+        
+        <!-- Chat Content -->
+        <div v-if="showChat" class="chat-content">
+          <!-- Chat Header -->
+          <div class="content-header">
+            <h1>{{ title }}</h1>
+            <div style="display: flex; align-items: center;">
+              <div class="status-dot"></div>
+            </div>
+          </div>
+          
+          <!-- Messages Area -->
+          <div class="messages-area" ref="messagesArea">
+            <div v-if="messages.length === 0" class="welcome-state">
+              <div class="welcome-icon">🤖</div>
+              <div class="welcome-text">Welcome to Sider AI</div>
+              <div class="welcome-subtitle">Start a conversation by typing below</div>
+            </div>
+            
+            <div v-for="message in messages" :key="message.id" :class="['message', message.type]">
+              {{ message.text }}
+            </div>
+            
+            <div v-if="isTyping" class="typing-indicator">
+              <span>AI is typing</span>
+              <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Chat Input -->
+          <div class="chat-input">
+            <div class="input-container">
+              <textarea 
+                v-model="currentMessage" 
+                @keydown="handleKeyPress"
+                :disabled="isTyping"
+                class="message-input" 
+                placeholder="Type your message..."
+                rows="1">
+              </textarea>
+              <button 
+                @click="sendMessage" 
+                :disabled="!currentMessage.trim() || isTyping"
+                class="send-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Edit Content -->
+        <div v-if="showEdit" class="edit-content">
+          <!-- Edit Header -->
+          <div class="content-header">
+            <h1>Edit & Write</h1>
+            <div class="edit-tabs">
+              <div :class="['edit-tab', activeEditTab === 'write' ? 'active' : '']" @click="switchEditTab('write')">Write</div>
+              <div :class="['edit-tab', activeEditTab === 'reply' ? 'active' : '']" @click="switchEditTab('reply')">Reply</div>
+            </div>
+          </div>
+          
+          <div v-if="activeEditTab === 'write'">
+            <!-- Writing modes -->
+            <div class="writing-modes">
+              <div class="mode-button active">Essay</div>
+              <div class="mode-button">Paragraph</div>
+              <div class="mode-button">Email</div>
+              <div class="mode-button">Ideas</div>
+            </div>
+            
+            <!-- Settings -->
+            <div class="writing-settings">
+              <select class="setting-select">
+                <option>Formal</option>
+                <option>Casual</option>
+                <option>Professional</option>
+              </select>
+              <select class="setting-select">
+                <option>Short</option>
+                <option>Medium</option>
+                <option>Long</option>
+              </select>
+              <select class="setting-select">
+                <option>English</option>
+                <option>Spanish</option>
+                <option>French</option>
+              </select>
+            </div>
+            
+            <!-- Text area -->
+            <div class="edit-textarea-container">
+              <textarea 
+                v-model="editContent"
+                class="edit-textarea" 
+                placeholder="Enter the topic you want to write about...">
+              </textarea>
+            </div>
+            
+            <!-- Submit button -->
+            <div class="edit-actions">
+              <button @click="generateContent" class="submit-button">Submit</button>
+            </div>
+          </div>
+          
+          <div v-if="activeEditTab === 'reply'">
+            <!-- Reply modes -->
+            <div class="writing-modes">
+              <div :class="['mode-button', activeReplyMode === 'comment' ? 'active' : '']" @click="switchReplyMode('comment')">Comment</div>
+              <div :class="['mode-button', activeReplyMode === 'email' ? 'active' : '']" @click="switchReplyMode('email')">Email</div>
+              <div :class="['mode-button', activeReplyMode === 'message' ? 'active' : '']" @click="switchReplyMode('message')">Message</div>
+            </div>
+            
+            <!-- Settings -->
+            <div class="writing-settings">
+              <select class="setting-select">
+                <option>Formal</option>
+                <option>Casual</option>
+                <option>Professional</option>
+              </select>
+              <select class="setting-select">
+                <option>Short</option>
+                <option>Medium</option>
+                <option>Long</option>
+              </select>
+              <select class="setting-select">
+                <option>English</option>
+                <option>Spanish</option>
+                <option>French</option>
+              </select>
+            </div>
+            
+            <!-- Original text area -->
+            <div class="reply-original-container">
+              <textarea 
+                v-model="replyOriginalText"
+                class="reply-original-textarea" 
+                placeholder="Enter the original text you want to reply to">
+              </textarea>
+            </div>
+            
+            <!-- Response text area -->
+            <div class="reply-response-container">
+              <textarea 
+                v-model="replyResponseText"
+                class="reply-response-textarea" 
+                placeholder="Describe the general idea of your response">
+              </textarea>
+            </div>
+            
+            <!-- Submit button -->
+            <div class="edit-actions">
+              <button @click="generateReply" class="submit-button">Submit</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Translate Content -->
+        <div v-if="showTranslate" class="translate-content">
+          <!-- Translate Header -->
+          <div class="content-header">
+            <h1>Translate</h1>
+          </div>
+          
+          <!-- Language selection -->
+          <div class="language-selection">
+            <div class="language-selector">
+              <select v-model="translateFromLang" class="from-language-select">
+                <option value="auto">Auto Detect</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="it">Italian</option>
+                <option value="pt">Portuguese</option>
+                <option value="ru">Russian</option>
+                <option value="zh">Chinese</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+              </select>
+            </div>
+            
+            <div class="arrow-icon">→</div>
+            
+            <div class="language-selector">
+              <select v-model="translateToLang" class="to-language-select">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="it">Italian</option>
+                <option value="pt">Portuguese</option>
+                <option value="ru">Russian</option>
+                <option value="zh">Chinese</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Text input area -->
+          <div class="translate-input-container">
+            <textarea 
+              v-model="translateText"
+              class="translate-input" 
+              placeholder="Type or paste text here...">
+            </textarea>
+          </div>
+          
+          <!-- Translate button -->
+          <div class="translate-actions">
+            <button @click="performTranslation" :disabled="!translateText.trim()" class="translate-button">Translate</button>
+          </div>
+        </div>
+        
+        <!-- Home Content -->
+        <div v-if="showHome" class="home-content">
+          <!-- Home Header -->
+          <div class="content-header">
+            <h1>Chaturbate Model Helper</h1>
+          </div>
+          
+          <!-- Home Tabs -->
+          <div class="home-tabs">
+            <div :class="['home-tab', activeHomeTab === 'dashboard' ? 'active' : '']" @click="switchHomeTab('dashboard')">Dashboard</div>
+            <div :class="['home-tab', activeHomeTab === 'top-tippers' ? 'active' : '']" @click="switchHomeTab('top-tippers')">Top Tippers</div>
+            <div :class="['home-tab', activeHomeTab === 'analytics' ? 'active' : '']" @click="switchHomeTab('analytics')">Analytics</div>
+            <div :class="['home-tab', activeHomeTab === 'settings' ? 'active' : '']" @click="switchHomeTab('settings')">Settings</div>
+          </div>
+          
+          <div v-if="activeHomeTab === 'dashboard'" class="dashboard-content">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">127</div>
+                <div class="stat-label">Active Viewers</div>
+                <div class="stat-trend up">+12%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">$234</div>
+                <div class="stat-label">Today's Earnings</div>
+                <div class="stat-trend up">+8%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">3.2k</div>
+                <div class="stat-label">Total Tokens</div>
+                <div class="stat-trend down">-3%</div>
+              </div>
+            </div>
+            <div class="recent-activity">
+              <h3>Recent Activity</h3>
+              <div class="activity-item">🎁 BigTipper just tipped 500 tokens</div>
+              <div class="activity-item">👋 New follower: ModelFan123</div>
+              <div class="activity-item">💬 PrivateShow request from VIP_User</div>
+            </div>
+          </div>
+          
+          <div v-if="activeHomeTab === 'top-tippers'" class="top-tippers-content">
+            <div class="tippers-header">
+              <h3>Top Tippers This Week</h3>
+              <select class="time-filter">
+                <option>This Week</option>
+                <option>This Month</option>
+                <option>All Time</option>
+              </select>
+            </div>
+            <div class="tippers-list">
+              <div class="tipper-item">
+                <div class="tipper-rank">1</div>
+                <div class="tipper-info">
+                  <div class="tipper-name">BigSpender2024</div>
+                  <div class="tipper-total">2,500 tokens</div>
+                </div>
+                <div class="tipper-badge">👑</div>
+              </div>
+              <div class="tipper-item">
+                <div class="tipper-rank">2</div>
+                <div class="tipper-info">
+                  <div class="tipper-name">GenerousViewer</div>
+                  <div class="tipper-total">1,800 tokens</div>
+                </div>
+                <div class="tipper-badge">💎</div>
+              </div>
+              <div class="tipper-item">
+                <div class="tipper-rank">3</div>
+                <div class="tipper-info">
+                  <div class="tipper-name">SupportiveFan</div>
+                  <div class="tipper-total">1,200 tokens</div>
+                </div>
+                <div class="tipper-badge">⭐</div>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="activeHomeTab === 'analytics'" class="analytics-content">
+            <h3>Performance Analytics</h3>
+            <div class="analytics-placeholder">
+              <div class="chart-placeholder">
+                <div class="placeholder-text">📊 Earnings Chart</div>
+                <div class="placeholder-desc">Weekly earnings trends will appear here</div>
+              </div>
+              <div class="chart-placeholder">
+                <div class="placeholder-text">👥 Viewer Analytics</div>
+                <div class="placeholder-desc">Peak viewing hours and demographics</div>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="activeHomeTab === 'settings'" class="settings-content">
+            <h3>Model Helper Settings</h3>
+            <div class="settings-section">
+              <label class="setting-label">Notification Preferences</label>
+              <div class="setting-options">
+                <label class="checkbox-label">
+                  <input type="checkbox" checked>
+                  <span>New tips notifications</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" checked>
+                  <span>Goal reminders</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox">
+                  <span>Private show requests</span>
+                </label>
+              </div>
+            </div>
+            <div class="settings-section">
+              <label class="setting-label">Auto-responses</label>
+              <textarea class="settings-textarea" placeholder="Enter your auto-thank you message for tips..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-icon home-icon" @click="toggleHome">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9,22 9,12 15,12 15,22"/>
+          </svg>
+        </div>
+        <div class="sidebar-icon chat-icon" @click="toggleChat">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div class="sidebar-icon edit-icon" @click="toggleEdit">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </div>
+        <div class="sidebar-icon translate-icon" @click="toggleTranslate">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 8l6 6M4 14l6-6M2 5h12M7 2h1l8 22M17 8h5M23 8v1a4 4 0 0 1-4 4"/>
+          </svg>
+        </div>
+        <div :class="['sidebar-icon', 'profile-icon', isAuthenticated ? 'authenticated' : 'unauthenticated']" @click="toggleAuth" :title="isAuthenticated ? `Logout ${user?.name || 'User'}` : 'Login'">
+          <svg v-if="!isAuthenticated" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10,17 15,12 10,7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <img v-else-if="user?.picture" :src="user.picture" :alt="user.name" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+  <script src="vue.js"></script>
+  <script src="novita-api.js"></script>
+  <script src="auth0-service.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
