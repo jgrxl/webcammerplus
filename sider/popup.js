@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
         showAnalytics: false,
         activeAnalyticsTab: 'dashboard',
         isAuthenticated: false,
-        user: null
+        user: null,
+        sidebarExpanded: false
       }
     },
     methods: {
@@ -195,6 +196,9 @@ document.addEventListener('DOMContentLoaded', function() {
         this.activeAnalyticsTab = tab;
       },
 
+      toggleSidebar() {
+        this.sidebarExpanded = !this.sidebarExpanded;
+      },
       
       async toggleAuth() {
         if (this.isAuthenticated) {
