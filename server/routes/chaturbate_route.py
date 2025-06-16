@@ -157,10 +157,13 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
                 username = event.object.user.username or "Anonymous"
                 message = event.object.message or ""
 
+                # Determine if this is a system message
+                method = "system" if username == "System" else "chatMessage"
+
                 # Write to InfluxDB
                 point = (
                     Point("chaturbate_events")
-                    .tag("method", "chatMessage")
+                    .tag("method", method)
                     .tag("username", username)
                     .field("object.user.username", username)
                     .field("object.message", message)
@@ -169,8 +172,11 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
 
                 self._write_to_influx(point)
 
+                # Use appropriate type for WebSocket event
+                event_type = "system" if username == "System" else "chat"
+                
                 data = {
-                    "type": "chat",
+                    "type": event_type,
                     "username": username,
                     "message": message,
                     "timestamp": event.timestamp.timestamp(),

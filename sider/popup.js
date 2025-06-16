@@ -447,7 +447,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Auto scroll to bottom if enabled
         if (this.autoScroll) {
           this.$nextTick(() => {
-            this.scrollEventsToBottom();
+            setTimeout(() => {
+              this.scrollEventsToBottom();
+            }, 10);
           });
         }
       },
@@ -480,6 +482,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = this.$refs.eventsContainer;
         if (container) {
           container.scrollTop = container.scrollHeight;
+          // Double-check scroll position in case of timing issues
+          setTimeout(() => {
+            if (container && this.autoScroll) {
+              container.scrollTop = container.scrollHeight;
+            }
+          }, 50);
         }
       },
 
@@ -1113,6 +1121,19 @@ document.addEventListener('DOMContentLoaded', function() {
               return 0;
           }
         });
+      }
+    },
+
+    watch: {
+      filteredEvents() {
+        // Auto scroll when filtered events change and auto-scroll is enabled
+        if (this.autoScroll) {
+          this.$nextTick(() => {
+            setTimeout(() => {
+              this.scrollEventsToBottom();
+            }, 10);
+          });
+        }
       }
     },
     
