@@ -248,25 +248,129 @@
             </div>
           </div>
           
-          <div v-if="isAttached" class="events-content">
-            <div class="events-header">
-              <h3>Live Events</h3>
-              <div class="events-controls">
-                <button @click="clearEvents" class="clear-btn">Clear</button>
-                <button @click="toggleAutoScroll" :class="['auto-scroll-btn', { 'active': autoScroll }]">
-                  Auto Scroll
+          <div v-if="isAttached" class="chaturbate-interface">
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+              <div :class="['tab-item', { 'active': activeTab === 'messages' }]" @click="switchTab('messages')">
+                MESSAGES
+              </div>
+              <div :class="['tab-item', { 'active': activeTab === 'tippers' }]" @click="switchTab('tippers')">
+                TIPPERS
+              </div>
+              <div :class="['tab-item', { 'active': activeTab === 'ranking' }]" @click="switchTab('ranking')">
+                RANKING
+              </div>
+              <div :class="['tab-item', { 'active': activeTab === 'users' }]" @click="switchTab('users')">
+                USERS ({{ onlineUsers }})
+              </div>
+              <div class="tab-controls">
+                <button class="settings-btn" title="Settings">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+                  </svg>
                 </button>
               </div>
             </div>
-            <div class="events-container" ref="eventsContainer">
-              <div v-if="events.length === 0" class="no-events">
-                <span>Waiting for events...</span>
+            
+            <!-- Tab Content -->
+            <div class="tab-content">
+              <!-- Messages Tab -->
+              <div v-if="activeTab === 'messages'" class="messages-tab">
+                <div class="events-controls">
+                  <button @click="clearEvents" class="clear-btn">Clear</button>
+                  <button @click="toggleAutoScroll" :class="['auto-scroll-btn', { 'active': autoScroll }]">
+                    Auto Scroll
+                  </button>
+                </div>
+                <div class="events-container" ref="eventsContainer">
+                  <div v-if="events.length === 0" class="no-events">
+                    <span>Waiting for messages...</span>
+                  </div>
+                  <div v-for="event in events" :key="event.id" :class="['event-item', event.type]">
+                    <div class="event-timestamp">{{ formatTime(event.timestamp) }}</div>
+                    <div class="event-content">
+                      <span class="event-type">{{ event.type }}</span>
+                      <span class="event-message">{{ event.message }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div v-for="event in events" :key="event.id" :class="['event-item', event.type]">
-                <div class="event-timestamp">{{ formatTime(event.timestamp) }}</div>
-                <div class="event-content">
-                  <span class="event-type">{{ event.type }}</span>
-                  <span class="event-message">{{ event.message }}</span>
+              
+              <!-- Tippers Tab -->
+              <div v-if="activeTab === 'tippers'" class="tippers-tab">
+                <div class="tippers-header">
+                  <h3>Top Tippers</h3>
+                  <select class="time-filter" v-model="tippersTimeFilter" @change="onTippersTimeFilterChange">
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                  </select>
+                </div>
+                <div class="tippers-list">
+                  <div v-if="topTippers.length === 0" class="no-tippers">
+                    <span>No tippers found for the selected period</span>
+                  </div>
+                  <div v-for="(tipper, index) in topTippers" :key="tipper.username" class="tipper-item">
+                    <div class="tipper-rank">{{ index + 1 }}</div>
+                    <div class="tipper-info">
+                      <div class="tipper-name">{{ tipper.username }}</div>
+                      <div class="tipper-total">{{ tipper.totalTokens }} tokens</div>
+                    </div>
+                    <div class="tipper-badge">{{ getTipperBadge(index) }}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Ranking Tab -->
+              <div v-if="activeTab === 'ranking'" class="ranking-tab">
+                <div class="ranking-stats">
+                  <div class="stat-item">
+                    <div class="stat-value">{{ currentRank || '---' }}</div>
+                    <div class="stat-label">Current Rank</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">{{ totalTokensToday || 0 }}</div>
+                    <div class="stat-label">Tokens Today</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">{{ viewersCount || 0 }}</div>
+                    <div class="stat-label">Viewers</div>
+                  </div>
+                </div>
+                <div class="ranking-chart">
+                  <div class="chart-placeholder">
+                    <div class="placeholder-text">📊 Ranking Chart</div>
+                    <div class="placeholder-desc">Hourly ranking progression</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Users Tab -->
+              <div v-if="activeTab === 'users'" class="users-tab">
+                <div class="users-filters">
+                  <button :class="['filter-btn', { 'active': userFilter === 'all' }]" @click="setUserFilter('all')">
+                    All ({{ onlineUsers }})
+                  </button>
+                  <button :class="['filter-btn', { 'active': userFilter === 'tippers' }]" @click="setUserFilter('tippers')">
+                    Tippers
+                  </button>
+                  <button :class="['filter-btn', { 'active': userFilter === 'moderators' }]" @click="setUserFilter('moderators')">
+                    Mods
+                  </button>
+                </div>
+                <div class="users-list">
+                  <div v-for="user in filteredUsers" :key="user.username" class="user-item">
+                    <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                    <div class="user-info">
+                      <div class="user-name">{{ user.username }}</div>
+                      <div class="user-status">{{ user.status }}</div>
+                    </div>
+                    <div class="user-actions">
+                      <button class="action-btn" title="Send PM">💬</button>
+                      <button class="action-btn" title="View Profile">👤</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

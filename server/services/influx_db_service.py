@@ -42,6 +42,19 @@ class ChatterCount:
 
 
 @dataclass(frozen=True)
+class TipperCount:
+    """Represents a tipper and their total tokens.
+
+    Attributes:
+        username: The tipper's username
+        total_tokens: Total tokens tipped
+    """
+
+    username: str
+    total_tokens: int
+
+
+@dataclass(frozen=True)
 class TopChatterResponse:
     """Response model for top chatter data.
 
@@ -53,6 +66,23 @@ class TopChatterResponse:
     """
 
     chatters: List[ChatterCount]
+    days: int
+    success: bool = True
+    error: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class TopTippersResponse:
+    """Response model for top tippers data.
+
+    Attributes:
+        tippers: List of top tippers sorted by total tokens
+        days: Number of days the query covered
+        success: Whether the query was successful
+        error: Error message if query failed
+    """
+
+    tippers: List[TipperCount]
     days: int
     success: bool = True
     error: Optional[str] = None
@@ -205,8 +235,8 @@ class InfluxDBService:
                          .filter("method", "==", self.CHAT_METHOD)
                          .field(self.USERNAME_FIELD)
                          .filter("_value", "!=", "")
-                         .filter("_value", "!=", None)
                          .custom('map(fn: (r) => ({ r with user: r._value }))')
+                         .custom('filter(fn: (r) => exists r.user)')
                          .group_by(["user"])
                          .aggregate(AggregateFunction.COUNT)
                          .sort("_value", desc=True)
@@ -253,6 +283,90 @@ class InfluxDBService:
             logger.error(f"Unexpected error in get_top_chatters: {e}")
             return TopChatterResponse(
                 chatters=[],
+                days=days,
+                success=False,
+                error=f"Unexpected error: {str(e)}",
+            )
+
+    def get_top_tippers(
+        self, days: int = 7, limit: int = DEFAULT_TOP_CHATTERS_LIMIT
+    ) -> 'TopTippersResponse':
+        """Get the top tippers in the last N days by total tokens.
+
+        Args:
+            days: Number of days to look back (default: 7, max: 365)
+            limit: Maximum number of tippers to return (default: 10, max: 100)
+
+        Returns:
+            TopTippersResponse containing sorted list of top tippers
+
+        Raises:
+            ValueError: If parameters are invalid
+        """
+        try:
+            self._validate_days_parameter(days)
+
+            if not isinstance(limit, int) or limit <= 0:
+                raise ValueError(f"Limit must be a positive integer, got {limit}")
+            if limit > 100:
+                raise ValueError(f"Limit cannot exceed 100, got {limit}")
+
+            # Build query using QueryBuilder 
+            flux_query = (FluxQueryBuilder()
+                         .from_bucket(self.bucket)
+                         .range(f"-{days}d")
+                         .measurement(self.MEASUREMENT_NAME)
+                         .filter("method", "==", self.TIP_METHOD)
+                         .field(self.TIP_TOKENS_FIELD)
+                         .filter("_value", ">", 0)  # Fix: Remove quotes to compare with integer
+                         .custom('filter(fn: (r) => exists r.username and r.username != "")')
+                         .group_by(["username"])
+                         .aggregate(AggregateFunction.SUM)
+                         .sort("_value", desc=True)
+                         .limit(limit)
+                         .build())
+
+            logger.debug(f"Executing top tippers query for {days} days, limit {limit}")
+            tables = self.query_api.query(query=flux_query, org=self.org)
+
+            tippers: List['TipperCount'] = []
+            for table in tables:
+                for record in table.records:
+                    username = record.values.get("username")
+                    total_tokens = record.get_value()
+
+                    if (
+                        username
+                        and isinstance(total_tokens, (int, float))
+                        and total_tokens > 0
+                    ):
+                        tippers.append(
+                            TipperCount(
+                                username=str(username).strip(), 
+                                total_tokens=int(total_tokens)
+                            )
+                        )
+
+            # Sort by total tokens descending (extra safety)
+            tippers.sort(key=lambda x: x.total_tokens, reverse=True)
+
+            logger.info(f"Retrieved {len(tippers)} top tippers over {days} days")
+            return TopTippersResponse(tippers=tippers, days=days)
+
+        except ValueError:
+            raise  # Re-raise validation errors
+        except InfluxDBError as e:
+            logger.error(f"InfluxDB query failed for top tippers: {e}")
+            return TopTippersResponse(
+                tippers=[],
+                days=days,
+                success=False,
+                error=f"Database query failed: {str(e)}",
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in get_top_tippers: {e}")
+            return TopTippersResponse(
+                tippers=[],
                 days=days,
                 success=False,
                 error=f"Unexpected error: {str(e)}",

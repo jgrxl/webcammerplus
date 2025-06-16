@@ -3,15 +3,28 @@ from flask_cors import CORS
 from flask_restx import Api
 from flask_socketio import SocketIO
 import os
+import logging
 from dotenv import load_dotenv
+from client.influx_client import InfluxDBClient
 
 # Load environment variables
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> Flask:
     app = Flask(__name__)
     CORS(app)
+    
+    # Validate InfluxDB connection on startup (fail fast)
+    logger.info("Checking InfluxDB connection...")
+    try:
+        influx_client = InfluxDBClient()
+        logger.info("✅ InfluxDB connection successful")
+    except Exception as e:
+        logger.error(f"❌ InfluxDB connection failed: {e}")
+        raise RuntimeError(f"InfluxDB is required but not properly configured: {e}")
     
     # Configure app for sessions (required for OAuth)
     app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-change-in-production')

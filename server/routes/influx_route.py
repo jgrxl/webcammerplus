@@ -6,6 +6,9 @@ from flask_restx import Namespace, Resource, fields
 from services.influx_db_service import InfluxDBService
 from client.influx_client import InfluxDBClient
 from utils.query_builder import FluxQueryBuilder, Operator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 api = Namespace('influx', description='InfluxDB analytics operations')
@@ -88,10 +91,10 @@ def get_influx_service() -> InfluxDBService:
     """Get configured InfluxDB service instance."""
     try:
         client = InfluxDBClient()
-        client.connect()
         return InfluxDBService(client, client.bucket)
     except Exception as e:
-        abort(500, description=f"Failed to connect to InfluxDB: {str(e)}")
+        logger.error(f"InfluxDB connection failed: {str(e)}")
+        abort(500, description=f"InfluxDB service unavailable: {str(e)}")
 
 
 @api.route('/search')
@@ -172,12 +175,12 @@ class InfluxSearch(Resource):
             )))
             
         except Exception as e:
-            return jsonify(asdict(SearchResponse(
-                success=False,
-                data=[],
-                count=0,
-                error=str(e)
-            ))), 500
+            return jsonify({
+                'success': False,
+                'data': [],
+                'count': 0,
+                'error': str(e)
+            }), 500
 
 
 @api.route('/tips')
@@ -194,12 +197,17 @@ class InfluxTips(Resource):
             days = payload.get('days', 7)
             
             service = get_influx_service()
-            result = service.get_total_tips(days)
             
+            result = service.get_total_tips(days)
             return jsonify(asdict(result))
             
         except Exception as e:
-            abort(500, description=str(e))
+            return jsonify({
+                'success': False,
+                'total_tokens': 0,
+                'days': payload.get('days', 7),
+                'error': str(e)
+            })
 
 
 @api.route('/chatters')
@@ -217,9 +225,42 @@ class InfluxChatters(Resource):
             limit = payload.get('limit', 10)
             
             service = get_influx_service()
-            result = service.get_top_chatters(days, limit)
             
+            result = service.get_top_chatters(days, limit)
             return jsonify(asdict(result))
             
         except Exception as e:
-            abort(500, description=str(e))
+            return jsonify({
+                'success': False,
+                'chatters': [],
+                'days': payload.get('days', 7),
+                'error': str(e)
+            })
+
+
+@api.route('/tippers')
+class InfluxTopTippers(Resource):
+    @api.expect(chatters_request_model)  # Reuse the same model as it has the same parameters
+    @api.response(200, 'Success', fields.Raw(description='Top tippers response'))
+    @api.response(400, 'Bad Request', error_model)
+    @api.response(500, 'Internal Server Error', error_model)
+    @api.doc('get_top_tippers')
+    def post(self):
+        """Get top tippers by total tokens in the specified time period"""
+        try:
+            payload = request.get_json(force=True) or {}
+            days = payload.get('days', 7)
+            limit = payload.get('limit', 10)
+            
+            service = get_influx_service()
+            
+            result = service.get_top_tippers(days, limit)
+            return jsonify(asdict(result))
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'tippers': [],
+                'days': payload.get('days', 7),
+                'error': str(e)
+            })

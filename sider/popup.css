@@ -1434,6 +1434,15 @@ body {
   font-style: italic;
 }
 
+.no-tippers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #64748b;
+  font-style: italic;
+}
+
 .event-item {
   background: white;
   border-radius: 8px;
@@ -1544,4 +1553,326 @@ body {
 
 .events-container::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Chaturbate Interface Tabs */
+.chaturbate-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: -20px;
+  padding: 0;
+}
+
+.tab-navigation {
+  display: flex;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0;
+}
+
+.tab-item {
+  padding: 12px 20px;
+  background: #cbd5e1;
+  color: #475569;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border-right: 1px solid #94a3b8;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.tab-item:hover {
+  background: #94a3b8;
+  color: #1e293b;
+}
+
+.tab-item.active {
+  background: #ff6b35;
+  color: white;
+}
+
+.tab-item:first-child {
+  border-top-left-radius: 6px;
+}
+
+.tab-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.settings-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.settings-btn:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+/* Messages Tab */
+.messages-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+/* Tippers Tab */
+.tippers-tab {
+  padding: 16px;
+}
+
+.tippers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tippers-header h3 {
+  margin: 0;
+  color: #334155;
+  font-size: 18px;
+}
+
+.time-filter {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tippers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tipper-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.tipper-item:hover {
+  transform: translateX(4px);
+}
+
+.tipper-rank {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.tipper-info {
+  flex: 1;
+}
+
+.tipper-name {
+  font-weight: 600;
+  color: #334155;
+  font-size: 16px;
+}
+
+.tipper-total {
+  color: #10b981;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.tipper-badge {
+  font-size: 24px;
+}
+
+/* Ranking Tab */
+.ranking-tab {
+  padding: 16px;
+}
+
+.ranking-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ranking-chart {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chart-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #64748b;
+}
+
+.placeholder-text {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.placeholder-desc {
+  font-size: 14px;
+}
+
+/* Users Tab */
+.users-tab {
+  padding: 16px;
+}
+
+.users-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #f8fafc;
+  border-color: #9ca3af;
+}
+
+.filter-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.user-item:hover {
+  transform: translateX(2px);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+
+.user-status {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.user-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #e2e8f0;
+  transform: scale(1.1);
 }

@@ -31,7 +31,24 @@ document.addEventListener('DOMContentLoaded', function() {
         events: [],
         eventIdCounter: 1,
         autoScroll: true,
-        websocket: null
+        websocket: null,
+        refreshDebounceTimer: null,
+        activeTab: 'messages',
+        onlineUsers: 0,
+        currentRank: null,
+        totalTokensToday: 0,
+        viewersCount: 0,
+        userFilter: 'all',
+        topTippers: [],
+        tippersTimeFilter: 'today',
+        tippersRefreshTimer: null,
+        hasLoadedTippers: false,
+        onlineUsersList: [
+          { username: 'BigTipper', status: 'Premium' },
+          { username: 'ChatUser1', status: 'Regular' },
+          { username: 'Viewer2', status: 'Regular' },
+          { username: 'ModeratorX', status: 'Moderator' }
+        ]
       }
     },
     methods: {
@@ -299,10 +316,20 @@ document.addEventListener('DOMContentLoaded', function() {
             this.isAttached = true;
             this.addEvent('system', 'Connected to Chaturbate');
             console.log('Connected to Chaturbate WebSocket');
+            // Load initial data from InfluxDB
+            this.refreshInfluxData();
           });
           
           this.websocket.on('chaturbate_event', (data) => {
             this.handleChaturbateEvent(data);
+            // Refresh InfluxDB data periodically when receiving tip events (but not chat to avoid spam)
+            if (this.isAttached && data.type === 'tip') {
+              // Debounce the refresh to avoid too many calls
+              clearTimeout(this.refreshDebounceTimer);
+              this.refreshDebounceTimer = setTimeout(() => {
+                this.refreshInfluxData();
+              }, 2000);
+            }
           });
 
           this.websocket.on('chaturbate_status', (data) => {
@@ -345,18 +372,26 @@ document.addEventListener('DOMContentLoaded', function() {
           case 'tip':
             message = `💰 ${data.username} tipped ${data.amount} tokens`;
             if (data.message) message += `: ${data.message}`;
+            // Update tipper stats
+            this.updateTipperStats(data.username, data.amount);
+            // Ensure user is in the list
+            this.updateUsersList(data.username, 'join');
             break;
           case 'chat':
             message = `💬 ${data.username}: ${data.message}`;
+            // Ensure user is in the list
+            this.updateUsersList(data.username, 'join');
             break;
           case 'private':
             message = `📧 Private message from ${data.username}`;
             break;
           case 'user_join':
             message = `👋 ${data.username} joined the room`;
+            this.updateUsersList(data.username, 'join');
             break;
           case 'user_leave':
             message = `👋 ${data.username} left the room`;
+            this.updateUsersList(data.username, 'leave');
             break;
           case 'media_purchase':
             message = `🎬 ${data.username} purchased ${data.media_name}`;
@@ -429,6 +464,152 @@ document.addEventListener('DOMContentLoaded', function() {
           minute: '2-digit', 
           second: '2-digit' 
         });
+      },
+
+      switchTab(tab) {
+        this.activeTab = tab;
+        // Fetch tippers data when switching to tippers tab
+        if (tab === 'tippers') {
+          // Show demo data on first load if no data exists
+          if (!this.hasLoadedTippers && this.topTippers.length === 0) {
+            this.showDemoTippers();
+          }
+          this.fetchTippersFromInflux();
+        }
+      },
+      
+      showDemoTippers() {
+        // Show some demo data while waiting for real data
+        this.topTippers = [
+          { username: 'Loading...', totalTokens: 0 }
+        ];
+      },
+
+      setUserFilter(filter) {
+        this.userFilter = filter;
+      },
+
+      getTipperBadge(index) {
+        const badges = ['👑', '💎', '⭐', '🥇', '🥈', '🥉'];
+        return badges[index] || '🎖️';
+      },
+
+      updateTipperStats(username, amount) {
+        // Since we're now using InfluxDB, we don't need to update local state
+        // The data will be refreshed via refreshInfluxData() calls
+        // Just update today's total for immediate feedback
+        this.totalTokensToday += amount;
+        
+        // If we're on the tippers tab, refresh the tippers list
+        if (this.activeTab === 'tippers') {
+          // Debounce the refresh to avoid too many API calls
+          clearTimeout(this.tippersRefreshTimer);
+          this.tippersRefreshTimer = setTimeout(() => {
+            this.fetchTippersFromInflux();
+          }, 2000); // Wait 2 seconds before refreshing
+        }
+      },
+
+      updateUsersList(username, action) {
+        if (action === 'join') {
+          if (!this.onlineUsersList.find(u => u.username === username)) {
+            this.onlineUsersList.push({
+              username: username,
+              status: 'Regular'
+            });
+          }
+        } else if (action === 'leave') {
+          this.onlineUsersList = this.onlineUsersList.filter(u => u.username !== username);
+        }
+        this.onlineUsers = this.onlineUsersList.length;
+      },
+
+      async fetchTippersFromInflux() {
+        try {
+          // Map time filter to days
+          const daysMap = {
+            'today': 1,
+            'week': 7,
+            'month': 30
+          };
+          const days = daysMap[this.tippersTimeFilter] || 1;
+          
+          const serverUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+          const response = await fetch(`${serverUrl}/api/v1/influx/tippers`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              days: days,
+              limit: 10  // Get top 10 tippers
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.tippers) {
+              // Map the response to match the frontend's expected format
+              this.topTippers = result.tippers.map(tipper => ({
+                username: tipper.username,
+                totalTokens: tipper.total_tokens
+              }));
+              this.hasLoadedTippers = true;
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch tippers from InfluxDB:', error);
+        }
+      },
+      
+      onTippersTimeFilterChange() {
+        // Refresh tippers data when time filter changes
+        this.fetchTippersFromInflux();
+      },
+
+      async fetchTotalTipsFromInflux() {
+        try {
+          const serverUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+          const response = await fetch(`${serverUrl}/api/v1/influx/tips`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              days: 1
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              this.totalTokensToday = data.total_tokens;
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch total tips from InfluxDB:', error);
+        }
+      },
+
+      async refreshInfluxData() {
+        await Promise.all([
+          this.fetchTippersFromInflux(),
+          this.fetchTotalTipsFromInflux()
+        ]);
+      }
+    },
+
+    computed: {
+      filteredUsers() {
+        if (this.userFilter === 'all') {
+          return this.onlineUsersList;
+        } else if (this.userFilter === 'tippers') {
+          const tipperUsernames = this.topTippers.map(t => t.username);
+          return this.onlineUsersList.filter(u => tipperUsernames.includes(u.username));
+        } else if (this.userFilter === 'moderators') {
+          return this.onlineUsersList.filter(u => u.status === 'Moderator');
+        }
+        return [];
       }
     },
     
@@ -440,6 +621,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.userMenu) {
         await window.userMenu.refresh();
       }
+      
+      // Initialize online users count
+      this.onlineUsers = this.onlineUsersList.length;
       
       // Add welcome message after component mounts
       setTimeout(() => {

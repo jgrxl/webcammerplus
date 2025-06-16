@@ -11,6 +11,8 @@ from flask_socketio import SocketIO, emit, disconnect
 import os
 from dataclasses import dataclass
 from datetime import datetime
+from client.influx_client import InfluxDBClient
+from influxdb_client import Point
 
 
 logger = logging.getLogger(__name__)
@@ -60,14 +62,37 @@ logger.info("Using real ChaturbateClientEventHandler with chaturbate_poller mode
 
 
 class WebSocketEventHandler(ChaturbateClientEventHandler):
-    """Event handler that forwards processed events to WebSocket clients."""
+    """Event handler that forwards processed events to WebSocket clients and stores them in InfluxDB."""
     
     def __init__(self, socket_io: SocketIO):
         super().__init__(enable_logging=True)
         self.socketio = socket_io
+        self.influx_client = None
+        self._init_influx_client()
+    
+    def _init_influx_client(self):
+        """Initialize InfluxDB client if environment variables are set."""
+        try:
+            self.influx_client = InfluxDBClient()
+            logger.info("InfluxDB client initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize InfluxDB client: {e}")
+            self.influx_client = None
+    
+    def _write_to_influx(self, point: Point):
+        """Write a point to InfluxDB if client is available."""
+        if self.influx_client:
+            try:
+                write_api = self.influx_client.write_api
+                write_api.write(bucket=self.influx_client.bucket, org=self.influx_client.org, record=point)
+                logger.info(f"Successfully wrote event to InfluxDB: {point._name} for user: {point._tags.get('username', 'unknown')}")
+            except Exception as e:
+                logger.error(f"Failed to write to InfluxDB: {e}")
+        else:
+            logger.warning("InfluxDB client not available - skipping write")
     
     async def handle_tip(self, event) -> None:
-        """Handle tip events and forward to WebSocket."""
+        """Handle tip events, write to InfluxDB, and forward to WebSocket."""
         try:
             # Process with parent handler first
             await super().handle_tip(event)
@@ -76,6 +101,17 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
                 username = event.object.user.username or "Anonymous"
                 amount = event.object.tip.tokens or 0
                 message = getattr(event.object.tip, 'message', '') or event.object.message or ''
+                
+                # Write to InfluxDB
+                point = Point("chaturbate_events") \
+                    .tag("method", "tip") \
+                    .tag("username", username) \
+                    .field("object.tip.tokens", amount) \
+                    .field("object.user.username", username) \
+                    .field("object.tip.message", message) \
+                    .time(event.timestamp)
+                
+                self._write_to_influx(point)
                 
                 data = {
                     'type': 'tip',
@@ -86,13 +122,13 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
                 }
                 
                 self.socketio.emit('chaturbate_event', data, namespace='/chaturbate')
-                logger.info(f"Processed and forwarded tip event: {username} tipped {amount} tokens")
+                logger.info(f"Processed tip event to InfluxDB and WebSocket: {username} tipped {amount} tokens")
                 
         except Exception as e:
             logger.error(f"Error handling tip event: {e}")
     
     async def handle_chat(self, event) -> None:
-        """Handle chat events and forward to WebSocket."""
+        """Handle chat events, write to InfluxDB, and forward to WebSocket."""
         try:
             # Process with parent handler first
             await super().handle_chat(event)
@@ -100,6 +136,16 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
             if event and event.object and event.object.user:
                 username = event.object.user.username or "Anonymous"
                 message = event.object.message or ""
+                
+                # Write to InfluxDB
+                point = Point("chaturbate_events") \
+                    .tag("method", "chatMessage") \
+                    .tag("username", username) \
+                    .field("object.user.username", username) \
+                    .field("object.message", message) \
+                    .time(event.timestamp)
+                
+                self._write_to_influx(point)
                 
                 data = {
                     'type': 'chat',
@@ -109,7 +155,7 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
                 }
                 
                 self.socketio.emit('chaturbate_event', data, namespace='/chaturbate')
-                logger.debug(f"Processed and forwarded chat event: {username}: {message[:50]}...")
+                logger.debug(f"Processed chat event to InfluxDB and WebSocket: {username}: {message[:50]}...")
                 
         except Exception as e:
             logger.error(f"Error handling chat event: {e}")
@@ -153,13 +199,27 @@ class DemoEventGenerator:
             while self.running and connected_clients:
                 try:
                     # Generate random events and process them through the event handler
-                    event_type = random.choice(['tip', 'chat'])  # Focus on main event types
+                    # Increase tip frequency to 70% tips, 30% chat
+                    event_type = random.choices(['tip', 'chat'], weights=[70, 30], k=1)[0]
                     
                     if event_type == 'tip':
                         # Create a proper tip event object matching real Chaturbate structure
-                        user = MockUser(username=random.choice(['BigTipper', 'GenerousUser', 'FanUser123']))
-                        amount = random.choice([10, 25, 50, 100, 500])
-                        tip_message = random.choice(['Thanks!', 'Great show!', 'Keep it up!', ''])
+                        # Use consistent usernames with different tip patterns
+                        tipper_profiles = [
+                            ('WhaleKing', [100, 200, 500, 1000]),  # Big spender
+                            ('DiamondHands', [50, 100, 200, 500]),  # Generous regular
+                            ('LoyalFan', [25, 50, 100, 100]),  # Consistent tipper
+                            ('NewSupporter', [10, 25, 50]),  # New supporter
+                            ('RandomTipper', [5, 10, 25, 50]),  # Occasional tipper
+                            ('BigSpender2024', [200, 500, 1000]),  # VIP
+                            ('GenerousViewer', [100, 150, 200]),  # Premium supporter
+                        ]
+                        
+                        # Pick a tipper profile
+                        username, amounts = random.choice(tipper_profiles)
+                        user = MockUser(username=username)
+                        amount = random.choice(amounts)
+                        tip_message = random.choice(['Thanks!', 'Great show!', 'Keep it up!', 'You\'re amazing!', 'Love the stream!', ''])
                         
                         tip = MockTip(tokens=amount, message=tip_message)
                         tip_object = MockTipObject(user=user, tip=tip, message=tip_message)
@@ -170,10 +230,18 @@ class DemoEventGenerator:
                         
                     elif event_type == 'chat':
                         # Create a proper chat event object
-                        user = MockUser(username=random.choice(['ChatUser1', 'Viewer2', 'RegularFan']))
+                        # Mix of tippers and regular chatters
+                        chat_users = [
+                            'WhaleKing', 'DiamondHands', 'LoyalFan', 'NewSupporter',
+                            'ChatUser1', 'Viewer2', 'RegularFan', 'QuietViewer',
+                            'BigSpender2024', 'GenerousViewer'
+                        ]
+                        user = MockUser(username=random.choice(chat_users))
                         chat_message = random.choice([
                             'Hello!', 'How are you?', 'Great stream!', 
-                            'What time is it?', 'You look amazing!', '😍'
+                            'What time is it?', 'You look amazing!', '😍',
+                            'Thanks for the show!', 'Keep up the good work!',
+                            'When is the next stream?', 'Love your content!'
                         ])
                         
                         chat_object = MockChatObject(user=user, message=chat_message)
@@ -184,8 +252,8 @@ class DemoEventGenerator:
                     
                     logger.debug(f"Generated and processed demo event: {event_type}")
                     
-                    # Wait 3-8 seconds between events
-                    time.sleep(random.uniform(3, 8))
+                    # Wait 1-3 seconds between events for more frequent tips
+                    time.sleep(random.uniform(1, 3))
                     
                 except Exception as e:
                     logger.error(f"Error generating demo event: {e}")

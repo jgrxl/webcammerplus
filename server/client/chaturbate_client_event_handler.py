@@ -2,7 +2,11 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, Union
 
-from chaturbate_poller.models import Event, Tip, Message, User
+try:
+    from chaturbate_poller.models import Event, Tip, Message, User
+except ImportError:
+    # Use mock models for demo mode
+    from client.models import Event, Tip, Message, User
 
 
 logger = logging.getLogger(__name__)
