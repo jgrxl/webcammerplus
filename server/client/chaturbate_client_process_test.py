@@ -1,10 +1,11 @@
 import asyncio
 import os
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from server.client.chaturbate_client_process import ChaturbateClientProcess
+import pytest
+
 from server.client.chaturbate_client_event_handler import ChaturbateClientEventHandler
+from server.client.chaturbate_client_process import ChaturbateClientProcess
 
 
 @pytest.fixture

@@ -1,12 +1,12 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional, List, Union
+from typing import List, Optional, Union
+
+from influxdb_client.client.exceptions import InfluxDBError
 
 from client.influx_client import InfluxDBClient
-from influxdb_client.client.exceptions import InfluxDBError
-from utils.query_builder import FluxQueryBuilder, AggregateFunction
-
+from utils.query_builder import AggregateFunction, FluxQueryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -163,14 +163,16 @@ class InfluxDBService:
             self._validate_days_parameter(days)
 
             # Build query using QueryBuilder
-            query = (FluxQueryBuilder()
-                    .from_bucket(self.bucket)
-                    .range(f"-{days}d")
-                    .measurement(self.MEASUREMENT_NAME)
-                    .filter("method", "==", self.TIP_METHOD)
-                    .field(self.TIP_TOKENS_FIELD)
-                    .aggregate(AggregateFunction.SUM)
-                    .build())
+            query = (
+                FluxQueryBuilder()
+                .from_bucket(self.bucket)
+                .range(f"-{days}d")
+                .measurement(self.MEASUREMENT_NAME)
+                .filter("method", "==", self.TIP_METHOD)
+                .field(self.TIP_TOKENS_FIELD)
+                .aggregate(AggregateFunction.SUM)
+                .build()
+            )
 
             logger.debug(f"Executing tips query for {days} days")
             tables = self.query_api.query(query=query, org=self.org)
@@ -228,20 +230,22 @@ class InfluxDBService:
                 raise ValueError(f"Limit cannot exceed 100, got {limit}")
 
             # Build query using QueryBuilder
-            flux_query = (FluxQueryBuilder()
-                         .from_bucket(self.bucket)
-                         .range(f"-{days}d")
-                         .measurement(self.MEASUREMENT_NAME)
-                         .filter("method", "==", self.CHAT_METHOD)
-                         .field(self.USERNAME_FIELD)
-                         .filter("_value", "!=", "")
-                         .custom('map(fn: (r) => ({ r with user: r._value }))')
-                         .custom('filter(fn: (r) => exists r.user)')
-                         .group_by(["user"])
-                         .aggregate(AggregateFunction.COUNT)
-                         .sort("_value", desc=True)
-                         .limit(limit)
-                         .build())
+            flux_query = (
+                FluxQueryBuilder()
+                .from_bucket(self.bucket)
+                .range(f"-{days}d")
+                .measurement(self.MEASUREMENT_NAME)
+                .filter("method", "==", self.CHAT_METHOD)
+                .field(self.USERNAME_FIELD)
+                .filter("_value", "!=", "")
+                .custom("map(fn: (r) => ({ r with user: r._value }))")
+                .custom("filter(fn: (r) => exists r.user)")
+                .group_by(["user"])
+                .aggregate(AggregateFunction.COUNT)
+                .sort("_value", desc=True)
+                .limit(limit)
+                .build()
+            )
 
             logger.debug(f"Executing top chatters query for {days} days, limit {limit}")
             tables = self.query_api.query(query=flux_query, org=self.org)
@@ -290,7 +294,7 @@ class InfluxDBService:
 
     def get_top_tippers(
         self, days: int = 7, limit: int = DEFAULT_TOP_CHATTERS_LIMIT
-    ) -> 'TopTippersResponse':
+    ) -> "TopTippersResponse":
         """Get the top tippers in the last N days by total tokens.
 
         Args:
@@ -311,25 +315,27 @@ class InfluxDBService:
             if limit > 100:
                 raise ValueError(f"Limit cannot exceed 100, got {limit}")
 
-            # Build query using QueryBuilder 
-            flux_query = (FluxQueryBuilder()
-                         .from_bucket(self.bucket)
-                         .range(f"-{days}d")
-                         .measurement(self.MEASUREMENT_NAME)
-                         .filter("method", "==", self.TIP_METHOD)
-                         .field(self.TIP_TOKENS_FIELD)
-                         .filter("_value", ">", 0)  # Fix: Remove quotes to compare with integer
-                         .custom('filter(fn: (r) => exists r.username and r.username != "")')
-                         .group_by(["username"])
-                         .aggregate(AggregateFunction.SUM)
-                         .sort("_value", desc=True)
-                         .limit(limit)
-                         .build())
+            # Build query using QueryBuilder
+            flux_query = (
+                FluxQueryBuilder()
+                .from_bucket(self.bucket)
+                .range(f"-{days}d")
+                .measurement(self.MEASUREMENT_NAME)
+                .filter("method", "==", self.TIP_METHOD)
+                .field(self.TIP_TOKENS_FIELD)
+                .filter("_value", ">", 0)  # Fix: Remove quotes to compare with integer
+                .custom('filter(fn: (r) => exists r.username and r.username != "")')
+                .group_by(["username"])
+                .aggregate(AggregateFunction.SUM)
+                .sort("_value", desc=True)
+                .limit(limit)
+                .build()
+            )
 
             logger.debug(f"Executing top tippers query for {days} days, limit {limit}")
             tables = self.query_api.query(query=flux_query, org=self.org)
 
-            tippers: List['TipperCount'] = []
+            tippers: List["TipperCount"] = []
             for table in tables:
                 for record in table.records:
                     username = record.values.get("username")
@@ -342,8 +348,8 @@ class InfluxDBService:
                     ):
                         tippers.append(
                             TipperCount(
-                                username=str(username).strip(), 
-                                total_tokens=int(total_tokens)
+                                username=str(username).strip(),
+                                total_tokens=int(total_tokens),
                             )
                         )
 

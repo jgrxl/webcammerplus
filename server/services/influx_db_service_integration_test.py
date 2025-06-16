@@ -1,16 +1,19 @@
 import time
 from datetime import datetime, timedelta
 from typing import Generator
-from influxdb_client.client.write_api import WriteApi, WriteOptions, PointSettings
-from influxdb_client.client.write_api import SYNCHRONOUS
 
 import pytest
 from docker import DockerClient
 from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import (
+    SYNCHRONOUS,
+    PointSettings,
+    WriteApi,
+    WriteOptions,
+)
 
-from server.services.influx_db_service import InfluxDBService, TipsResponse
 from server.services.helper import is_docker_available, wait_for_influxdb
-
+from server.services.influx_db_service import InfluxDBService, TipsResponse
 
 pytestmark = pytest.mark.skipif(
     not is_docker_available(),

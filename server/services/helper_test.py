@@ -1,8 +1,9 @@
+import logging
 import shutil
+
 import pytest
 
 from server.services.helper import is_docker_available, wait_for_influxdb
-import logging
 
 fixture_logger = logging.getLogger("fixture")
 fixture_logger.setLevel(logging.INFO)
