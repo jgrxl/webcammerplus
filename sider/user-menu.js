@@ -658,9 +658,13 @@ class UserMenu {
             if (response.ok) {
                 const data = await response.json();
                 this.updateSubscriptionBadge(data.tier);
+            } else {
+                console.warn('Server not available, using default subscription info');
+                this.updateSubscriptionBadge('free');
             }
         } catch (error) {
-            console.error('Failed to load subscription info:', error);
+            console.warn('Server not available, using default subscription info:', error);
+            this.updateSubscriptionBadge('free');
         }
     }
 

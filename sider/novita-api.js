@@ -43,11 +43,11 @@ class WebCammerAPI {
   // Health check to verify backend is running
   async healthCheck() {
     try {
-      const response = await fetch(`${this.baseURL}/`);
+      const response = await fetch(`${this.baseURL}/`, { timeout: 5000 });
       const data = await response.json();
       return data.status === 'ok';
     } catch (error) {
-      console.error('Health check failed:', error);
+      console.warn('Backend server is not available:', error);
       return false;
     }
   }

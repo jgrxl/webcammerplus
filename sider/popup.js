@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
         translateText: '',
         translateFromLang: 'auto',
         translateToLang: 'en',
-        showHome: false,
+        showHome: true,
         showAnalytics: false,
         activeAnalyticsTab: 'dashboard',
         isAuthenticated: false,
@@ -104,21 +104,19 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       
       toggleChat() {
-        this.showChat = !this.showChat;
-        if (this.showChat) {
-          this.showEdit = false;
-          this.showTranslate = false;
-          this.showHome = false;
-        }
+        this.showChat = true;
+        this.showEdit = false;
+        this.showTranslate = false;
+        this.showHome = false;
+        this.showAnalytics = false;
       },
       
       toggleEdit() {
-        this.showEdit = !this.showEdit;
-        if (this.showEdit) {
-          this.showChat = false;
-          this.showTranslate = false;
-          this.showHome = false;
-        }
+        this.showEdit = true;
+        this.showChat = false;
+        this.showTranslate = false;
+        this.showHome = false;
+        this.showAnalytics = false;
       },
       
       switchEditTab(tab) {
@@ -153,12 +151,11 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       
       toggleTranslate() {
-        this.showTranslate = !this.showTranslate;
-        if (this.showTranslate) {
-          this.showChat = false;
-          this.showEdit = false;
-          this.showHome = false;
-        }
+        this.showTranslate = true;
+        this.showChat = false;
+        this.showEdit = false;
+        this.showHome = false;
+        this.showAnalytics = false;
       },
       
       async performTranslation() {
@@ -173,23 +170,19 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       
       toggleHome() {
-        this.showHome = !this.showHome;
-        if (this.showHome) {
-          this.showChat = false;
-          this.showEdit = false;
-          this.showTranslate = false;
-          this.showAnalytics = false;
-        }
+        this.showHome = true;
+        this.showChat = false;
+        this.showEdit = false;
+        this.showTranslate = false;
+        this.showAnalytics = false;
       },
 
       toggleAnalytics() {
-        this.showAnalytics = !this.showAnalytics;
-        if (this.showAnalytics) {
-          this.showChat = false;
-          this.showEdit = false;
-          this.showTranslate = false;
-          this.showHome = false;
-        }
+        this.showAnalytics = true;
+        this.showChat = false;
+        this.showEdit = false;
+        this.showTranslate = false;
+        this.showHome = false;
       },
       
       switchAnalyticsTab(tab) {

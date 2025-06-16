@@ -41,9 +41,9 @@ class Auth0Service {
         authorizationParams: {
           redirect_uri: this.config.redirectUri,
           audience: this.config.audience,
-          scope: 'openid profile email'
+          scope: 'openid profile email offline_access'
         },
-        cacheLocation: 'localstorage', // Use localStorage for token caching
+        cacheLocation: 'localstorage',
         useRefreshTokens: true
       });
       
@@ -92,7 +92,7 @@ class Auth0Service {
         authorizationParams: {
           redirect_uri: this.config.redirectUri,
           audience: this.config.audience,
-          scope: 'openid profile email'
+          scope: 'openid profile email offline_access'
         }
       });
     } catch (error) {
@@ -176,7 +176,7 @@ class Auth0Service {
         const token = await this.auth0Client.getTokenSilently({
           authorizationParams: {
             audience: this.config.audience,
-            scope: 'openid profile email'
+            scope: 'openid profile email offline_access'
           }
         });
         
@@ -186,15 +186,16 @@ class Auth0Service {
       }
       return null;
     } catch (error) {
-      console.error('Token error:', error);
+      console.warn('Token refresh failed, but user is still authenticated:', error.message || error);
       
-      // If token refresh fails, try login again
+      // Only redirect to login for specific errors, not missing refresh tokens
       if (error.error === 'login_required' || error.error === 'consent_required') {
         console.log('Token refresh failed, redirecting to login...');
         await this.login();
       }
       
-      return null;
+      // Return cached token if available
+      return localStorage.getItem('auth_token') || null;
     }
   }
   

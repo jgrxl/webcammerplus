@@ -10,11 +10,6 @@
     <div class="main-layout">
       <!-- Main content area -->
       <div class="main-content">
-        <!-- Default Welcome View -->
-        <div v-if="!showChat && !showEdit && !showTranslate && !showHome && !showAnalytics">
-          <h1>WebCammer+</h1>
-          <p>Welcome to your AI assistant application.</p>
-        </div>
         
         <!-- Chat Content -->
         <div v-if="showChat" class="chat-content">
@@ -235,16 +230,16 @@
           </div>
         </div>
         
-        <!-- Home Content (Blank for now) -->
+        <!-- Home Content -->
         <div v-if="showHome" class="home-content">
           <div class="content-header">
-            <h1>Home</h1>
+            <h1>WebCammer+</h1>
           </div>
           <div class="blank-content">
             <div class="blank-placeholder">
-              <div class="blank-icon">🏠</div>
-              <h2>Welcome Home</h2>
-              <p>This is your homepage. Content coming soon!</p>
+              <div class="blank-icon">🤖</div>
+              <h2>Welcome to WebCammer+</h2>
+              <p>Your AI-powered assistant is ready to help. Choose a feature from the sidebar to get started.</p>
             </div>
           </div>
         </div>
@@ -451,7 +446,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-              <point x="12" y="17"/>
+              <circle cx="12" cy="17" r="1"/>
             </svg>
           </button>
           <button class="footer-icon-btn" @click="showContactModal" title="Contact Us">
