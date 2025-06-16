@@ -26,7 +26,12 @@ document.addEventListener('DOMContentLoaded', function() {
         activeAnalyticsTab: 'dashboard',
         isAuthenticated: false,
         user: null,
-        sidebarExpanded: false
+        sidebarExpanded: false,
+        isAttached: false,
+        events: [],
+        eventIdCounter: 1,
+        autoScroll: true,
+        websocket: null
       }
     },
     methods: {
@@ -263,6 +268,167 @@ document.addEventListener('DOMContentLoaded', function() {
 
       showContactModal() {
         alert('Get in touch! 📧\n\nEmail us at support@webcammerplus.com');
+      },
+
+      async toggleAttach() {
+        if (this.isAttached) {
+          await this.disconnectFromChaturbate();
+        } else {
+          await this.attachToChaturbate();
+        }
+      },
+
+      async attachToChaturbate() {
+        try {
+          // Make sure we're on home tab to see events
+          if (!this.showHome) {
+            this.toggleHome();
+          }
+
+          // Initialize SocketIO connection
+          if (!window.io) {
+            this.addEvent('error', 'SocketIO library not loaded');
+            return;
+          }
+
+          // Create SocketIO connection to our backend
+          const serverUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+          this.websocket = window.io(`${serverUrl}/chaturbate`);
+          
+          this.websocket.on('connect', () => {
+            this.isAttached = true;
+            this.addEvent('system', 'Connected to Chaturbate');
+            console.log('Connected to Chaturbate WebSocket');
+          });
+          
+          this.websocket.on('chaturbate_event', (data) => {
+            this.handleChaturbateEvent(data);
+          });
+
+          this.websocket.on('chaturbate_status', (data) => {
+            this.addEvent('system', `Chaturbate status: ${data.status}`);
+          });
+
+          this.websocket.on('chaturbate_error', (data) => {
+            this.addEvent('error', `Chaturbate error: ${data.error}`);
+          });
+          
+          this.websocket.on('disconnect', () => {
+            this.isAttached = false;
+            this.addEvent('system', 'Disconnected from Chaturbate');
+            console.log('Disconnected from Chaturbate WebSocket');
+          });
+          
+          this.websocket.on('connect_error', (error) => {
+            console.error('WebSocket connection error:', error);
+            this.addEvent('error', 'Connection error occurred');
+          });
+          
+        } catch (error) {
+          console.error('Failed to connect to Chaturbate:', error);
+          this.addEvent('error', 'Failed to connect to Chaturbate');
+        }
+      },
+
+      async disconnectFromChaturbate() {
+        if (this.websocket) {
+          this.websocket.disconnect();
+          this.websocket = null;
+        }
+        this.isAttached = false;
+      },
+
+      handleChaturbateEvent(data) {
+        let message = '';
+        
+        switch (data.type) {
+          case 'tip':
+            message = `💰 ${data.username} tipped ${data.amount} tokens`;
+            if (data.message) message += `: ${data.message}`;
+            break;
+          case 'chat':
+            message = `💬 ${data.username}: ${data.message}`;
+            break;
+          case 'private':
+            message = `📧 Private message from ${data.username}`;
+            break;
+          case 'user_join':
+            message = `👋 ${data.username} joined the room`;
+            break;
+          case 'user_leave':
+            message = `👋 ${data.username} left the room`;
+            break;
+          case 'media_purchase':
+            message = `🎬 ${data.username} purchased ${data.media_name}`;
+            break;
+          case 'system':
+            message = data.message || `System: ${data.type}`;
+            break;
+          default:
+            message = data.message || `📝 ${data.type}: ${JSON.stringify(data)}`;
+        }
+        
+        // Use timestamp from data if available, otherwise current time
+        const timestamp = data.timestamp ? new Date(data.timestamp * 1000) : new Date();
+        this.addEventWithTimestamp(data.type, message, timestamp);
+      },
+
+      addEvent(type, message) {
+        this.addEventWithTimestamp(type, message, new Date());
+      },
+
+      addEventWithTimestamp(type, message, timestamp) {
+        const event = {
+          id: this.eventIdCounter++,
+          type: type,
+          message: message,
+          timestamp: timestamp
+        };
+        
+        this.events.push(event);
+        
+        // Limit events to last 1000 to prevent memory issues
+        if (this.events.length > 1000) {
+          this.events = this.events.slice(-1000);
+        }
+        
+        // Auto scroll to bottom if enabled
+        if (this.autoScroll) {
+          this.$nextTick(() => {
+            this.scrollEventsToBottom();
+          });
+        }
+      },
+
+      clearEvents() {
+        this.events = [];
+      },
+
+      toggleAutoScroll() {
+        this.autoScroll = !this.autoScroll;
+        if (this.autoScroll) {
+          this.$nextTick(() => {
+            this.scrollEventsToBottom();
+          });
+        }
+      },
+
+      scrollEventsToBottom() {
+        const container = this.$refs.eventsContainer;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      },
+
+      formatTime(date) {
+        // Handle both Date objects and timestamp numbers
+        const dateObj = typeof date === 'number' ? new Date(date * 1000) : date;
+        return dateObj.toLocaleTimeString('en-US', { 
+          hour12: false, 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        });
       }
     },
     

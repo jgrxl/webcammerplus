@@ -234,12 +234,41 @@
         <div v-if="showHome" class="home-content">
           <div class="content-header">
             <h1>WebCammer+</h1>
+            <div class="connection-status" v-if="isAttached">
+              <div class="status-dot connected"></div>
+              <span>Connected to Chaturbate</span>
+            </div>
           </div>
-          <div class="blank-content">
+          
+          <div v-if="!isAttached" class="blank-content">
             <div class="blank-placeholder">
               <div class="blank-icon">🤖</div>
               <h2>Welcome to WebCammer+</h2>
-              <p>Your AI-powered assistant is ready to help. Choose a feature from the sidebar to get started.</p>
+              <p>Your AI-powered assistant is ready to help. Click the "Attach" button below to connect to Chaturbate and start receiving events.</p>
+            </div>
+          </div>
+          
+          <div v-if="isAttached" class="events-content">
+            <div class="events-header">
+              <h3>Live Events</h3>
+              <div class="events-controls">
+                <button @click="clearEvents" class="clear-btn">Clear</button>
+                <button @click="toggleAutoScroll" :class="['auto-scroll-btn', { 'active': autoScroll }]">
+                  Auto Scroll
+                </button>
+              </div>
+            </div>
+            <div class="events-container" ref="eventsContainer">
+              <div v-if="events.length === 0" class="no-events">
+                <span>Waiting for events...</span>
+              </div>
+              <div v-for="event in events" :key="event.id" :class="['event-item', event.type]">
+                <div class="event-timestamp">{{ formatTime(event.timestamp) }}</div>
+                <div class="event-content">
+                  <span class="event-type">{{ event.type }}</span>
+                  <span class="event-message">{{ event.message }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -442,6 +471,12 @@
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </button>
+          <button :class="['footer-icon-btn', 'attach-btn', { 'connected': isAttached }]" @click="toggleAttach" :title="isAttached ? 'Disconnect from Chaturbate' : 'Attach to Chaturbate'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </button>
           <button class="footer-icon-btn" @click="showHelpModal" title="Help & Support">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
@@ -468,6 +503,7 @@
     </footer>
   </div>
   <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="vue.js"></script>
   <script src="novita-api.js"></script>
   <script src="auth0-service.js"></script>

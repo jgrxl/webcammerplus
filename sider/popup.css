@@ -1311,3 +1311,237 @@ body {
     padding: 4px 8px;
   }
 }
+
+/* Chaturbate Attachment Styles */
+.attach-btn {
+  transition: all 0.3s ease;
+}
+
+.attach-btn.connected {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.attach-btn.connected:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.status-dot.connected {
+  background: #10b981;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* Events Content Styles */
+.events-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: -20px;
+  padding: 0;
+}
+
+.events-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.events-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.events-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.clear-btn,
+.auto-scroll-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.clear-btn:hover,
+.auto-scroll-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.auto-scroll-btn.active {
+  background: rgba(255, 255, 255, 0.9);
+  color: #667eea;
+}
+
+.events-container {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.no-events {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #64748b;
+  font-style: italic;
+}
+
+.event-item {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #e2e8f0;
+  transition: transform 0.2s;
+}
+
+.event-item:hover {
+  transform: translateX(4px);
+}
+
+.event-item.tip {
+  border-left-color: #10b981;
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+}
+
+.event-item.chat {
+  border-left-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+}
+
+.event-item.private {
+  border-left-color: #8b5cf6;
+  background: linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%);
+}
+
+.event-item.system {
+  border-left-color: #64748b;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.event-item.error {
+  border-left-color: #ef4444;
+  background: linear-gradient(135deg, #fef2f2 0%, #fef8f8 100%);
+}
+
+.event-timestamp {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.event-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.event-type {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #e2e8f0;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: fit-content;
+}
+
+.event-item.tip .event-type {
+  background: #10b981;
+  color: white;
+}
+
+.event-item.chat .event-type {
+  background: #3b82f6;
+  color: white;
+}
+
+.event-item.private .event-type {
+  background: #8b5cf6;
+  color: white;
+}
+
+.event-item.system .event-type {
+  background: #64748b;
+  color: white;
+}
+
+.event-item.error .event-type {
+  background: #ef4444;
+  color: white;
+}
+
+.event-message {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Scrollbar Styling */
+.events-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.events-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.events-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.events-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
