@@ -78,7 +78,9 @@ document.addEventListener('DOMContentLoaded', function() {
         inboxStats: { total_messages: 0, unread_messages: 0, read_messages: 0 },
         inboxUnreadCount: 0,
         lastConversationsLoadTime: 0,
-        conversationsLoadInterval: 120000  // 2 minutes in milliseconds
+        conversationsLoadInterval: 120000,  // 2 minutes in milliseconds
+        _navigatingToConversation: false,  // Private flag for navigation
+        loadingMessages: false  // Loading state for messages
       }
     },
     methods: {
@@ -519,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       },
 
-      switchTab(tab) {
+      async switchTab(tab) {
         this.activeTab = tab;
         // Fetch tippers data when switching to tippers tab
         if (tab === 'tippers') {
@@ -531,10 +533,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Load inbox data when switching to inbox tab
         if (tab === 'inbox') {
-          // Clear current conversation to show the conversation list
-          this.currentConversation = null;
-          this.currentMessages = [];
-          this.loadInboxData();
+          // Don't clear current conversation if we're being directed to a specific one
+          // Only clear if manually switching to inbox
+          if (!this._navigatingToConversation) {
+            this.currentConversation = null;
+            this.currentMessages = [];
+          }
+          await this.loadInboxData();
         }
         // Load user stats when switching to users tab
         if (tab === 'users') {
@@ -718,10 +723,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
 
-          await Promise.all([
-            this.loadInboxStats(),
-            this.loadConversations()
-          ]);
+          // Load stats and conversations in parallel
+          // But only load conversations if we don't have any cached or it's been a while
+          const promises = [this.loadInboxStats()];
+          
+          const now = Date.now();
+          const timeSinceLastLoad = now - this.lastConversationsLoadTime;
+          const shouldReloadConversations = this.conversations.length === 0 || timeSinceLastLoad > 30000; // 30 seconds
+          
+          if (shouldReloadConversations) {
+            promises.push(this.loadConversations());
+          }
+
+          await Promise.all(promises);
         } catch (error) {
           console.error('Failed to load inbox data:', error);
         }
@@ -831,9 +845,12 @@ document.addEventListener('DOMContentLoaded', function() {
       async loadMessages(username) {
         try {
           console.log('📨 Loading messages for:', username);
+          this.loadingMessages = true;
+          
           const token = await this.getAuthToken();
           if (!token) {
             console.warn('No auth token available for messages');
+            this.loadingMessages = false;
             return;
           }
 
@@ -860,6 +877,8 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
           console.error('Failed to load messages:', error);
           this.currentMessages = [];
+        } finally {
+          this.loadingMessages = false;
         }
       },
 
@@ -1173,13 +1192,53 @@ document.addEventListener('DOMContentLoaded', function() {
         this.loadingUserInfo = false;
       },
 
-      startPrivateMessage(username) {
-        // This would integrate with the inbox system
+      async startPrivateMessage(username) {
+        // This integrates with the inbox system
         console.log('Starting private message with:', username);
-        // For now, just close the modal and switch to inbox tab
+        
+        // Close the modal immediately
         this.closeUserInfoModal();
+        
+        // Set flag to indicate we're navigating to a specific conversation
+        this._navigatingToConversation = true;
+        
+        // Set the current conversation immediately for instant UI feedback
+        this.currentConversation = username;
+        this.currentMessages = [];
+        
+        // Switch to inbox tab (don't await - let it happen async)
         this.switchTab('inbox');
-        // In a real implementation, this would open a compose window
+        
+        // Start loading conversations if needed (in parallel)
+        const conversationsPromise = this.conversations.length === 0 && this.isAuthenticated
+          ? this.loadConversations(true)
+          : Promise.resolve();
+        
+        // Wait for next tick only
+        await this.$nextTick();
+        
+        // Now wait for conversations to load if they were loading
+        if (conversationsPromise) {
+          await conversationsPromise;
+        }
+        
+        // Check if we have an existing conversation with this user
+        const existingConversation = this.conversations.find(conv => conv.from_user === username);
+        
+        if (existingConversation) {
+          // Load messages for existing conversation
+          console.log('📬 Loading messages for:', username);
+          // Don't await - let messages load in background
+          this.loadMessages(username).catch(error => {
+            console.error('Failed to load messages:', error);
+          });
+        } else {
+          // No existing conversation - we already set up empty state above
+          console.log('📝 No existing conversation with:', username, '- showing empty thread');
+        }
+        
+        // Clear the navigation flag
+        this._navigatingToConversation = false;
       }
     },
 

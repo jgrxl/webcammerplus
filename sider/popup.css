@@ -2442,7 +2442,8 @@ body {
 }
 
 .no-conversations,
-.no-messages {
+.no-messages,
+.loading-messages {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2450,6 +2451,22 @@ body {
   color: #999;
   font-size: 14px;
   text-align: center;
+}
+
+.loading-messages {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.loading-spinner {
+  font-size: 20px;
+  margin-right: 8px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Clickable usernames in chat */

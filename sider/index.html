@@ -413,7 +413,10 @@
                         </div>
                       </div>
                       <div class="messages-list" ref="messagesContainer">
-                        <div v-if="currentMessages.length === 0" class="no-messages">No messages in this conversation</div>
+                        <div v-if="currentMessages.length === 0 && !loadingMessages" class="no-messages">No messages in this conversation</div>
+                        <div v-else-if="loadingMessages" class="loading-messages">
+                          <span class="loading-spinner">⏳</span> Loading messages...
+                        </div>
                         <div v-else>
                           <div v-for="msg in currentMessages" 
                                :key="msg.id"
