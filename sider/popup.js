@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
         events: [],
         eventIdCounter: 1,
         autoScroll: true,
+        messageFilters: ['tip', 'chat', 'system'],
         websocket: null,
         refreshDebounceTimer: null,
         activeTab: 'messages',
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         viewersCount: 0,
         userFilter: 'all',
         userSort: 'last_message',
+        userSearchQuery: '',
         topTippers: [],
         tippersTimeFilter: 'today',
         tippersRefreshTimer: null,
@@ -463,6 +465,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
 
+      toggleMessageFilter(filterType) {
+        const index = this.messageFilters.indexOf(filterType);
+        if (index > -1) {
+          // Remove filter
+          this.messageFilters.splice(index, 1);
+        } else {
+          // Add filter
+          this.messageFilters.push(filterType);
+        }
+      },
+
       scrollEventsToBottom() {
         const container = this.$refs.eventsContainer;
         if (container) {
@@ -517,6 +530,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
       setUserSort(sortBy) {
         this.userSort = sortBy;
+      },
+
+      onUserSearch() {
+        // This method can be used for debouncing or additional search logic if needed
+        // For now, the reactive userSearchQuery will trigger filteredUsers to update
+      },
+
+      clearUserSearch() {
+        this.userSearchQuery = '';
       },
 
       getTipperBadge(index) {
@@ -994,10 +1016,41 @@ document.addEventListener('DOMContentLoaded', function() {
             this.loadUserStatsForVisibleUsers();
           }
         }, 60000); // 60 seconds
+      },
+
+      getEventCategory(eventType) {
+        // Map event types to filter categories
+        switch (eventType) {
+          case 'tip':
+            return 'tip';
+          case 'chat':
+            return 'chat';
+          case 'system':
+          case 'user_join':
+          case 'user_leave':
+          case 'media_purchase':
+          case 'private':
+          case 'error':
+            return 'system';
+          default:
+            return 'system';
+        }
       }
     },
 
     computed: {
+      filteredEvents() {
+        if (this.messageFilters.length === 0) {
+          return [];
+        }
+        
+        return this.events.filter(event => {
+          // Map event types to filter categories
+          const eventCategory = this.getEventCategory(event.type);
+          return this.messageFilters.includes(eventCategory);
+        });
+      },
+
       filteredUsers() {
         let users = [];
         
@@ -1009,6 +1062,22 @@ document.addEventListener('DOMContentLoaded', function() {
           users = this.onlineUsersList.filter(u => tipperUsernames.includes(u.username));
         } else if (this.userFilter === 'moderators') {
           users = this.onlineUsersList.filter(u => u.status === 'Moderator');
+        }
+        
+        // Apply search filter if there's a search query
+        if (this.userSearchQuery.trim()) {
+          const searchQuery = this.userSearchQuery.toLowerCase().trim();
+          users = users.filter(user => {
+            // Search in username
+            const usernameMatch = user.username.toLowerCase().includes(searchQuery);
+            
+            // Search in user status from cache
+            const userStats = this.userStatsCache[user.username];
+            const statusMatch = userStats?.user_status?.toLowerCase().includes(searchQuery) || 
+                              user.status?.toLowerCase().includes(searchQuery);
+            
+            return usernameMatch || statusMatch;
+          });
         }
         
         // Then apply sorting

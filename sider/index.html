@@ -252,7 +252,7 @@
             <!-- Tab Navigation -->
             <div class="tab-navigation">
               <div :class="['tab-item', { 'active': activeTab === 'messages' }]" @click="switchTab('messages')">
-                MESSAGES
+                CHAT
               </div>
               <div :class="['tab-item', { 'active': activeTab === 'inbox' }]" @click="switchTab('inbox')">
                 INBOX <span v-if="inboxUnreadCount > 0" class="unread-badge">{{ inboxUnreadCount }}</span>
@@ -286,11 +286,23 @@
                     Auto Scroll
                   </button>
                 </div>
+                <div class="message-filters">
+                  <span class="filter-label">Filter:</span>
+                  <button :class="['message-filter-btn', { 'active': messageFilters.includes('tip') }]" @click="toggleMessageFilter('tip')">
+                    💰 Tips
+                  </button>
+                  <button :class="['message-filter-btn', { 'active': messageFilters.includes('chat') }]" @click="toggleMessageFilter('chat')">
+                    💬 Chat
+                  </button>
+                  <button :class="['message-filter-btn', { 'active': messageFilters.includes('system') }]" @click="toggleMessageFilter('system')">
+                    ⚙️ System
+                  </button>
+                </div>
                 <div class="events-container" ref="eventsContainer">
-                  <div v-if="events.length === 0" class="no-events">
-                    <span>Waiting for messages...</span>
+                  <div v-if="filteredEvents.length === 0" class="no-events">
+                    <span>{{ events.length === 0 ? 'Waiting for messages...' : 'No messages match the current filters' }}</span>
                   </div>
-                  <div v-for="event in events" :key="event.id" :class="['event-item', event.type]">
+                  <div v-for="event in filteredEvents" :key="event.id" :class="['event-item', event.type]">
                     <div class="event-timestamp">{{ formatTime(event.timestamp) }}</div>
                     <div class="event-content">
                       <span class="event-type">{{ event.type }}</span>
@@ -415,6 +427,22 @@
               
               <!-- Users Tab -->
               <div v-if="activeTab === 'users'" class="users-tab">
+                <div class="users-search">
+                  <div class="search-input-container">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input 
+                      type="text" 
+                      v-model="userSearchQuery" 
+                      placeholder="Search users..." 
+                      class="search-input"
+                      @input="onUserSearch"
+                    />
+                    <button v-if="userSearchQuery" @click="clearUserSearch" class="clear-search-btn">×</button>
+                  </div>
+                </div>
                 <div class="users-filters">
                   <button :class="['filter-btn', { 'active': userFilter === 'all' }]" @click="setUserFilter('all')">
                     All ({{ onlineUsers }})
