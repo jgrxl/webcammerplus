@@ -150,7 +150,7 @@ def verify_decode_jwt(token: str, config: Auth0Config) -> Dict[str, Any]:
     except jwt.ExpiredSignatureError:
         raise AuthError({"code": "token_expired", "description": "Token expired."}, 401)
 
-    except jwt.JWTClaimsError:
+    except (jwt.InvalidTokenError, jwt.InvalidAudienceError, jwt.InvalidIssuerError):
         raise AuthError(
             {
                 "code": "invalid_claims",

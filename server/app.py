@@ -51,6 +51,7 @@ def create_app() -> Flask:
     from routes.auth_route import setup_auth_routes
     from routes.chaturbate_route import api as chaturbate_ns
     from routes.chaturbate_route import setup_socketio
+    from routes.inbox_route import api as inbox_ns
     from routes.influx_route import api as influx_ns
     from routes.reply_route import api as reply_ns
     from routes.subscription_route import api as subscription_ns
@@ -65,6 +66,7 @@ def create_app() -> Flask:
     api.add_namespace(influx_ns)
     api.add_namespace(auth_ns)
     api.add_namespace(subscription_ns)
+    api.add_namespace(inbox_ns)
 
     # Setup OAuth and auth routes
     oauth, auth0 = setup_oauth(app)

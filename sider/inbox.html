@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Messages - WebCammerPlus</title>
+    <link rel="stylesheet" href="popup.css">
+    <style>
+        body {
+            width: 600px;
+            height: 600px;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .inbox-container {
+            display: flex;
+            height: 100%;
+            background: #f5f5f5;
+        }
+        
+        .conversations-list {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+        
+        .conversation-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .conversation-item:hover {
+            background: #f9f9f9;
+        }
+        
+        .conversation-item.active {
+            background: #e3f2fd;
+        }
+        
+        .conversation-item.unread {
+            font-weight: bold;
+        }
+        
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .username {
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .unread-badge {
+            background: #ff4444;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            min-width: 18px;
+            text-align: center;
+        }
+        
+        .last-message {
+            font-size: 12px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .timestamp {
+            font-size: 11px;
+            color: #999;
+            margin-top: 3px;
+        }
+        
+        .messages-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+        
+        .messages-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #fafafa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .messages-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-action {
+            padding: 5px 10px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .btn-action:hover {
+            background: #e0e0e0;
+        }
+        
+        .messages-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            position: relative;
+        }
+        
+        .message.received {
+            background: #e0e0e0;
+            align-self: flex-start;
+        }
+        
+        .message.sent {
+            background: #4285f4;
+            color: white;
+            align-self: flex-end;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .inbox-stats {
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .new-message-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4285f4;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .new-message-indicator.show {
+            display: flex;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="inbox-container">
+        <!-- Conversations List -->
+        <div class="conversations-list">
+            <div class="inbox-stats">
+                <span id="total-messages">0</span> messages • 
+                <span id="unread-count">0</span> unread
+            </div>
+            <div id="conversations-container">
+                <div class="loading">Loading conversations...</div>
+            </div>
+        </div>
+        
+        <!-- Messages Area -->
+        <div class="messages-area">
+            <div id="empty-state" class="empty-state">
+                <h3>Welcome to your inbox</h3>
+                <p>Select a conversation to view messages</p>
+            </div>
+            
+            <div id="conversation-view" style="display: none;">
+                <div class="messages-header">
+                    <h3 id="conversation-username">Username</h3>
+                    <div class="header-actions">
+                        <button class="btn-action" id="mark-all-read">Mark all read</button>
+                        <button class="btn-action" id="refresh-messages">Refresh</button>
+                    </div>
+                </div>
+                <div class="messages-list" id="messages-container">
+                    <div class="loading">Loading messages...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Message Indicator -->
+    <div class="new-message-indicator" id="new-message-indicator">
+        <span>New message received</span>
+        <span id="new-message-count">1</span>
+    </div>
+    
+    <script src="inbox.js"></script>
+</body>
+</html>

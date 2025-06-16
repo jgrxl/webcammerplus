@@ -254,6 +254,9 @@
               <div :class="['tab-item', { 'active': activeTab === 'messages' }]" @click="switchTab('messages')">
                 MESSAGES
               </div>
+              <div :class="['tab-item', { 'active': activeTab === 'inbox' }]" @click="switchTab('inbox')">
+                INBOX <span v-if="inboxUnreadCount > 0" class="unread-badge">{{ inboxUnreadCount }}</span>
+              </div>
               <div :class="['tab-item', { 'active': activeTab === 'tippers' }]" @click="switchTab('tippers')">
                 TIPPERS
               </div>
@@ -292,6 +295,70 @@
                     <div class="event-content">
                       <span class="event-type">{{ event.type }}</span>
                       <span class="event-message">{{ event.message }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Inbox Tab -->
+              <div v-if="activeTab === 'inbox'" class="inbox-tab">
+                <div class="inbox-container">
+                  <!-- Conversations List -->
+                  <div class="conversations-list">
+                    <div class="inbox-stats">
+                      <span>{{ inboxStats.total_messages || 0 }}</span> messages • 
+                      <span>{{ inboxStats.unread_messages || 0 }}</span> unread
+                      <button class="refresh-btn" @click="refreshInbox" title="Refresh inbox">🔄</button>
+                    </div>
+                    <div class="conversations-container">
+                      <div v-if="!isAuthenticated" class="no-conversations">Please sign in to view conversations</div>
+                      <div v-else-if="conversations.length === 0" class="no-conversations">No conversations yet</div>
+                      <div v-else>
+                        <div v-for="conv in conversations" 
+                             :key="conv.from_user"
+                             :class="['conversation-item', { 'unread': conv.unread_count > 0, 'active': currentConversation === conv.from_user }]"
+                             @click="selectConversation(conv.from_user)">
+                          <div class="conversation-header">
+                            <span class="username">{{ conv.from_user }}</span>
+                            <span v-if="conv.unread_count > 0" class="unread-badge">{{ conv.unread_count }}</span>
+                          </div>
+                          <div class="last-message">{{ conv.last_message }}</div>
+                          <div class="timestamp">{{ formatInboxTimestamp(conv.last_message_time) }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Messages Area -->
+                  <div class="messages-area">
+                    <div v-if="!isAuthenticated" class="empty-state">
+                      <h3>Authentication Required</h3>
+                      <p>Please sign in to view your private messages</p>
+                    </div>
+                    <div v-else-if="!currentConversation" class="empty-state">
+                      <h3>Welcome to your inbox</h3>
+                      <p>Select a conversation to view messages</p>
+                    </div>
+                    
+                    <div v-else class="conversation-view">
+                      <div class="messages-header">
+                        <h3>{{ currentConversation }}</h3>
+                        <div class="header-actions">
+                          <button class="btn-action" @click="markConversationAsRead">Mark all read</button>
+                          <button class="btn-action" @click="refreshMessages">Refresh</button>
+                        </div>
+                      </div>
+                      <div class="messages-list" ref="messagesContainer">
+                        <div v-if="currentMessages.length === 0" class="no-messages">No messages in this conversation</div>
+                        <div v-else>
+                          <div v-for="msg in currentMessages" 
+                               :key="msg.id"
+                               :class="['message', msg.is_sent ? 'sent' : 'received']">
+                            <div class="message-text">{{ msg.message }}</div>
+                            <div class="message-time">{{ formatInboxTimestamp(msg.timestamp) }}</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

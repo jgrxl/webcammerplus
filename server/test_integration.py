@@ -39,9 +39,7 @@ def test_translate_api():
             print(f"❌ HTTP Error: {response.status_code}")
 
     except requests.exceptions.ConnectionError:
-        print(
-            "❌ Connection Error: Make sure Flask server is running on localhost:5000"
-        )
+        print("❌ Connection Error: Make sure Flask server is running on localhost:5000")
     except Exception as e:
         print(f"❌ Error: {e}")
 

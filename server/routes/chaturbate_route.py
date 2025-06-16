@@ -203,6 +203,58 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
         except Exception as e:
             logger.error(f"Error handling message event: {e}")
 
+    async def handle_private_message(self, event) -> None:
+        """Handle private message events, write to InfluxDB, and forward to WebSocket."""
+        try:
+            # Process with parent handler first
+            await super().handle_private_message(event)
+
+            if event and event.object and event.object.user:
+                from_username = event.object.user.username or "Anonymous"
+                message = event.object.message or ""
+
+                # For private messages, we need to determine the recipient
+                # In a real implementation, this would come from the event data
+                # For demo purposes, we'll use the actual logged-in user's ID
+                to_username = "google-oauth2|101763761877997490084"
+                
+                logger.info(f"🔒 Processing private message: {from_username} -> {to_username}: {message}")
+
+                # Write to InfluxDB with specific tags for private messages
+                point = (
+                    Point("chaturbate_events")
+                    .tag("method", "privateMessage")
+                    .tag("from_user", from_username)
+                    .tag("to_user", to_username)
+                    .tag("is_read", "false")
+                    .field("object.user.username", from_username)
+                    .field("object.message", message)
+                    .field("from_user", from_username)
+                    .field("to_user", to_username)
+                    .time(event.timestamp)
+                )
+
+                self._write_to_influx(point)
+                logger.info(f"✅ Wrote private message to InfluxDB")
+
+                data = {
+                    "type": "private_message",
+                    "from_username": from_username,
+                    "to_username": to_username,
+                    "message": message,
+                    "timestamp": event.timestamp.timestamp(),
+                    "is_read": False,
+                }
+
+                # Emit to specific user namespace or broadcast for now
+                self.socketio.emit("private_message", data, namespace="/chaturbate")
+                logger.info(
+                    f"✅ Emitted private message to WebSocket: {from_username} -> {to_username}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error handling private message event: {e}")
+
 
 class DemoEventGenerator:
     """Demo event generator that creates proper event objects and processes them through the event handler."""
@@ -210,6 +262,8 @@ class DemoEventGenerator:
     def __init__(self, event_handler: WebSocketEventHandler):
         self.event_handler = event_handler
         self.running = False
+        self.last_private_message_time = time.time()
+        self.private_message_interval = 120  # 2 minutes in seconds
 
     def start(self):
         """Start generating demo events."""
@@ -223,10 +277,10 @@ class DemoEventGenerator:
             while self.running and connected_clients:
                 try:
                     # Generate random events and process them through the event handler
-                    # Increase tip frequency to 70% tips, 30% chat
-                    event_type = random.choices(["tip", "chat"], weights=[70, 30], k=1)[
-                        0
-                    ]
+                    # 70% tips, 29% chat, 1% private messages (less frequent)
+                    event_type = random.choices(
+                        ["tip", "chat", "private_message"], weights=[70, 29, 1], k=1
+                    )[0]
 
                     if event_type == "tip":
                         # Create a proper tip event object matching real Chaturbate structure
@@ -301,6 +355,42 @@ class DemoEventGenerator:
 
                         # Process through the real event handler
                         self._run_async_handler(self.event_handler.handle_chat(event))
+
+                    elif event_type == "private_message":
+                        # Create a proper private message event object
+                        pm_senders = [
+                            "SecretAdmirer",
+                            "VIPFan",
+                            "WhaleKing",
+                            "DiamondHands",
+                            "MysteryUser",
+                            "PrivateSupporter",
+                            "SilentFan",
+                            "AnonymousViewer",
+                        ]
+                        user = MockUser(username=random.choice(pm_senders))
+                        private_messages = [
+                            "Hey, can we chat privately?",
+                            "I love your shows! ❤️",
+                            "Are you available for a private show?",
+                            "Thanks for the amazing content!",
+                            "Just wanted to say hi privately 😊",
+                            "You're incredible!",
+                            "Can I request something special?",
+                            "Hope you're having a great day!",
+                            "Would love to support you more",
+                            "Your last show was amazing!",
+                        ]
+
+                        chat_object = MockChatObject(
+                            user=user, message=random.choice(private_messages)
+                        )
+                        event = MockEvent(object=chat_object, timestamp=datetime.now())
+
+                        # Process through the real event handler
+                        self._run_async_handler(
+                            self.event_handler.handle_private_message(event)
+                        )
 
                     logger.debug(f"Generated and processed demo event: {event_type}")
 

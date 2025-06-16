@@ -48,7 +48,15 @@ document.addEventListener('DOMContentLoaded', function() {
           { username: 'ChatUser1', status: 'Regular' },
           { username: 'Viewer2', status: 'Regular' },
           { username: 'ModeratorX', status: 'Moderator' }
-        ]
+        ],
+        // Inbox related data
+        conversations: [],
+        currentConversation: null,
+        currentMessages: [],
+        inboxStats: { total_messages: 0, unread_messages: 0, read_messages: 0 },
+        inboxUnreadCount: 0,
+        lastConversationsLoadTime: 0,
+        conversationsLoadInterval: 120000  // 2 minutes in milliseconds
       }
     },
     methods: {
@@ -339,6 +347,10 @@ document.addEventListener('DOMContentLoaded', function() {
           this.websocket.on('chaturbate_error', (data) => {
             this.addEvent('error', `Chaturbate error: ${data.error}`);
           });
+
+          this.websocket.on('private_message', (data) => {
+            this.handlePrivateMessage(data);
+          });
           
           this.websocket.on('disconnect', () => {
             this.isAttached = false;
@@ -476,6 +488,13 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           this.fetchTippersFromInflux();
         }
+        // Load inbox data when switching to inbox tab
+        if (tab === 'inbox') {
+          // Clear current conversation to show the conversation list
+          this.currentConversation = null;
+          this.currentMessages = [];
+          this.loadInboxData();
+        }
       },
       
       showDemoTippers() {
@@ -596,6 +615,252 @@ document.addEventListener('DOMContentLoaded', function() {
           this.fetchTippersFromInflux(),
           this.fetchTotalTipsFromInflux()
         ]);
+      },
+
+      // Inbox methods
+      async loadInboxData() {
+        try {
+          // Only load inbox data if user is authenticated
+          if (!this.isAuthenticated) {
+            console.warn('User not authenticated, skipping inbox data load');
+            return;
+          }
+
+          await Promise.all([
+            this.loadInboxStats(),
+            this.loadConversations()
+          ]);
+        } catch (error) {
+          console.error('Failed to load inbox data:', error);
+        }
+      },
+
+      async getAuthToken() {
+        try {
+          const auth0Service = await window.getAuth0Service();
+          if (auth0Service.isAuthenticated) {
+            const token = await auth0Service.getToken();
+            // Debug: log user info to help with inbox setup
+            if (auth0Service.user) {
+              console.log('🔍 Current user for inbox:', {
+                auth0_id: auth0Service.user.sub,
+                email: auth0Service.user.email,
+                nickname: auth0Service.user.nickname,
+                name: auth0Service.user.name
+              });
+            }
+            return token;
+          }
+          return null;
+        } catch (error) {
+          console.error('Failed to get auth token:', error);
+          return null;
+        }
+      },
+
+      async loadInboxStats() {
+        try {
+          const token = await this.getAuthToken();
+          if (!token) {
+            console.warn('No auth token available for inbox stats');
+            return;
+          }
+
+          const response = await fetch('http://localhost:5000/api/v1/inbox/stats', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            this.inboxStats = await response.json();
+            this.inboxUnreadCount = this.inboxStats.unread_messages || 0;
+          } else {
+            console.error('Failed to fetch inbox stats:', response.status, response.statusText);
+          }
+        } catch (error) {
+          console.error('Failed to load inbox stats:', error);
+        }
+      },
+
+      async loadConversations(forceLoad = false) {
+        try {
+          // Check if we should skip loading based on time interval
+          const now = Date.now();
+          const timeSinceLastLoad = now - this.lastConversationsLoadTime;
+          
+          if (!forceLoad && timeSinceLastLoad < this.conversationsLoadInterval) {
+            console.log(`📋 Skipping conversations load - only ${Math.round(timeSinceLastLoad/1000)}s since last load (need ${this.conversationsLoadInterval/1000}s)`);
+            return;
+          }
+
+          const token = await this.getAuthToken();
+          if (!token) {
+            console.warn('No auth token available for conversations');
+            return;
+          }
+
+          console.log('📋 Loading conversations from API...');
+          const response = await fetch('http://localhost:5000/api/v1/inbox/conversations', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            this.conversations = await response.json();
+            this.lastConversationsLoadTime = now;  // Update last load time
+            console.log('📋 Loaded conversations:', this.conversations.length, 'conversations');
+            console.log('📋 Conversations data:', this.conversations);
+            // Log each conversation for debugging
+            this.conversations.forEach((conv, index) => {
+              console.log(`📋 Conversation ${index + 1}:`, {
+                from: conv.from_user,
+                message: conv.last_message,
+                unread: conv.unread_count
+              });
+            });
+          } else {
+            console.error('Failed to fetch conversations:', response.status, response.statusText);
+            this.conversations = [];
+          }
+        } catch (error) {
+          console.error('Failed to load conversations:', error);
+          this.conversations = [];
+        }
+      },
+
+      async selectConversation(username) {
+        console.log('👆 Selecting conversation with:', username);
+        this.currentConversation = username;
+        await this.loadMessages(username);
+      },
+
+      async loadMessages(username) {
+        try {
+          console.log('📨 Loading messages for:', username);
+          const token = await this.getAuthToken();
+          if (!token) {
+            console.warn('No auth token available for messages');
+            return;
+          }
+
+          const response = await fetch(`http://localhost:5000/api/v1/inbox/conversations/${username}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          console.log('📨 Response status:', response.status);
+          if (response.ok) {
+            this.currentMessages = await response.json();
+            console.log('📨 Loaded messages:', this.currentMessages.length, 'messages');
+            console.log('📨 Messages data:', this.currentMessages);
+          } else {
+            console.error('Failed to fetch messages:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            this.currentMessages = [];
+          }
+
+          // Auto-mark as read when viewing
+          this.markConversationAsRead();
+        } catch (error) {
+          console.error('Failed to load messages:', error);
+          this.currentMessages = [];
+        }
+      },
+
+      async markConversationAsRead() {
+        if (!this.currentConversation) return;
+
+        try {
+          const token = await this.getAuthToken();
+          if (!token) {
+            console.warn('No auth token available for marking messages as read');
+            return;
+          }
+
+          const unreadMessages = this.currentMessages.filter(msg => !msg.is_read && !msg.is_sent);
+
+          for (const msg of unreadMessages) {
+            const response = await fetch(`http://localhost:5000/api/v1/inbox/messages/${msg.id}/read`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (!response.ok) {
+              console.error('Failed to mark message as read:', response.status, response.statusText);
+            }
+          }
+
+          // Update local state
+          this.currentMessages.forEach(msg => {
+            if (!msg.is_sent) msg.is_read = true;
+          });
+
+          // Refresh stats and conversations
+          await this.loadInboxStats();
+          await this.loadConversations();
+        } catch (error) {
+          console.error('Failed to mark messages as read:', error);
+        }
+      },
+
+      async refreshMessages() {
+        if (this.currentConversation) {
+          await this.loadMessages(this.currentConversation);
+        }
+      },
+
+      async refreshInbox() {
+        // Force refresh both conversations and current messages
+        await this.loadConversations(true);
+        if (this.currentConversation) {
+          await this.loadMessages(this.currentConversation);
+        }
+        await this.loadInboxStats();
+      },
+
+      formatInboxTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+
+        if (diff < 60000) { // Less than 1 minute
+          return 'Just now';
+        } else if (diff < 3600000) { // Less than 1 hour
+          return `${Math.floor(diff / 60000)}m ago`;
+        } else if (diff < 86400000) { // Less than 1 day
+          return `${Math.floor(diff / 3600000)}h ago`;
+        } else if (diff < 604800000) { // Less than 1 week
+          return `${Math.floor(diff / 86400000)}d ago`;
+        } else {
+          return date.toLocaleDateString();
+        }
+      },
+
+      handlePrivateMessage(data) {
+        console.log('New private message received:', data);
+        
+        // Update unread count
+        this.inboxUnreadCount++;
+        
+        // If on inbox tab, refresh the data
+        if (this.activeTab === 'inbox') {
+          // Force refresh conversations to show new message immediately
+          this.loadConversations(true);
+          
+          // If viewing the conversation from this sender, refresh messages
+          if (this.currentConversation === data.from_username) {
+            this.loadMessages(data.from_username);
+          }
+        }
+        
+        // Add to events feed as well
+        this.addEvent('private_message', `Private message from ${data.from_username}: ${data.message}`);
       }
     },
 
