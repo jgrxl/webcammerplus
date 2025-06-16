@@ -29,32 +29,27 @@ def create_app() -> Flask:
         prefix='/api/v1'
     )
     
-    # Import only the routes that work for demo
-    try:
-        from routes.chaturbate_route import api as chaturbate_ns, setup_socketio
-        api.add_namespace(chaturbate_ns)
-    except ImportError as e:
-        print(f"Could not import chaturbate_route: {e}")
+    # Import all routes
+    from routes.chaturbate_route import api as chaturbate_ns, setup_socketio
+    from routes.translate_route import api as translate_ns
+    from routes.reply_route import api as reply_ns
+    from routes.write_route import api as write_ns
+    from routes.influx_route import api as influx_ns
+    from routes.auth_route import api as auth_ns, setup_auth_routes
+    from routes.subscription_route import api as subscription_ns
+    from utils.auth import setup_oauth
     
-    # Comment out problematic imports for demo
-    # from routes.translate_route import api as translate_ns
-    # from routes.reply_route import api as reply_ns
-    # from routes.write_route import api as write_ns
-    # from routes.influx_route import api as influx_ns
-    # from routes.auth_route import api as auth_ns, setup_auth_routes
-    # from routes.subscription_route import api as subscription_ns
-    # from utils.auth import setup_oauth
-    
-    # api.add_namespace(translate_ns)
-    # api.add_namespace(reply_ns)
-    # api.add_namespace(write_ns)
-    # api.add_namespace(influx_ns)
-    # api.add_namespace(auth_ns)
-    # api.add_namespace(subscription_ns)
+    api.add_namespace(chaturbate_ns)
+    api.add_namespace(translate_ns)
+    api.add_namespace(reply_ns)
+    api.add_namespace(write_ns)
+    api.add_namespace(influx_ns)
+    api.add_namespace(auth_ns)
+    api.add_namespace(subscription_ns)
     
     # Setup OAuth and auth routes
-    # oauth, auth0 = setup_oauth(app)
-    # setup_auth_routes(app, auth0)
+    oauth, auth0 = setup_oauth(app)
+    setup_auth_routes(app, auth0)
     
     # Setup SocketIO
     socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
