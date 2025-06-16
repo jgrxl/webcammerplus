@@ -56,6 +56,7 @@ def create_app() -> Flask:
     from routes.reply_route import api as reply_ns
     from routes.subscription_route import api as subscription_ns
     from routes.translate_route import api as translate_ns
+    from routes.user_stats_route import api as user_stats_ns
     from routes.write_route import api as write_ns
     from utils.auth import setup_oauth
 
@@ -67,6 +68,7 @@ def create_app() -> Flask:
     api.add_namespace(auth_ns)
     api.add_namespace(subscription_ns)
     api.add_namespace(inbox_ns)
+    api.add_namespace(user_stats_ns)
 
     # Setup OAuth and auth routes
     oauth, auth0 = setup_oauth(app)

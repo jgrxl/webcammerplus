@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         totalTokensToday: 0,
         viewersCount: 0,
         userFilter: 'all',
+        userSort: 'last_message',
         topTippers: [],
         tippersTimeFilter: 'today',
         tippersRefreshTimer: null,
@@ -49,6 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
           { username: 'Viewer2', status: 'Regular' },
           { username: 'ModeratorX', status: 'Moderator' }
         ],
+        userStatsCache: {},  // Cache for user statistics
+        userStatsLoading: new Set(),  // Track which users are being loaded
         // Inbox related data
         conversations: [],
         currentConversation: null,
@@ -495,6 +498,10 @@ document.addEventListener('DOMContentLoaded', function() {
           this.currentMessages = [];
           this.loadInboxData();
         }
+        // Load user stats when switching to users tab
+        if (tab === 'users') {
+          this.loadUserStatsForVisibleUsers();
+        }
       },
       
       showDemoTippers() {
@@ -506,6 +513,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
       setUserFilter(filter) {
         this.userFilter = filter;
+      },
+
+      setUserSort(sortBy) {
+        this.userSort = sortBy;
       },
 
       getTipperBadge(index) {
@@ -861,20 +872,178 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add to events feed as well
         this.addEvent('private_message', `Private message from ${data.from_username}: ${data.message}`);
+      },
+
+      async getUserStats(username, forceRefresh = false) {
+        // Check if we already have this user's stats (unless forcing refresh)
+        if (!forceRefresh && this.userStatsCache[username]) {
+          return this.userStatsCache[username];
+        }
+
+        // Check if we're already loading this user's stats
+        if (this.userStatsLoading.has(username)) {
+          return null;
+        }
+
+        try {
+          this.userStatsLoading.add(username);
+          const token = await this.getAuthToken();
+          if (!token) {
+            return null;
+          }
+
+          const response = await fetch(`http://localhost:5000/api/v1/user_stats/${username}?days=30`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const stats = await response.json();
+            // Cache the stats for 5 minutes
+            this.userStatsCache[username] = {
+              ...stats,
+              cachedAt: Date.now()
+            };
+            return stats;
+          } else {
+            console.error('Failed to fetch user stats:', response.status, response.statusText);
+            return null;
+          }
+        } catch (error) {
+          console.error('Error fetching user stats:', error);
+          return null;
+        } finally {
+          this.userStatsLoading.delete(username);
+        }
+      },
+
+      async loadUserStatsForVisibleUsers() {
+        // Load stats for currently visible users in the users tab
+        if (this.activeTab !== 'users') return;
+
+        const visibleUsers = this.filteredUsers.slice(0, 10); // Limit to first 10 users
+        for (const user of visibleUsers) {
+          // Only load if we don't have cached stats (or they're old)
+          const cached = this.userStatsCache[user.username];
+          const isStale = !cached || (Date.now() - cached.cachedAt > 300000); // 5 minutes
+          
+          if (isStale) {
+            await this.getUserStats(user.username);
+          }
+        }
+      },
+
+      formatTimeAgo(timestamp) {
+        if (!timestamp) return 'Never';
+        
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+
+        if (diff < 60000) { // Less than 1 minute
+          return 'Just now';
+        } else if (diff < 3600000) { // Less than 1 hour
+          return `${Math.floor(diff / 60000)}m ago`;
+        } else if (diff < 86400000) { // Less than 1 day
+          return `${Math.floor(diff / 3600000)}h ago`;
+        } else if (diff < 604800000) { // Less than 1 week
+          return `${Math.floor(diff / 86400000)}d ago`;
+        } else {
+          return date.toLocaleDateString();
+        }
+      },
+
+      clearUserStatsCache() {
+        // Clear all cached user stats to force fresh data
+        this.userStatsCache = {};
+        this.userStatsLoading.clear();
+        console.log('📊 User stats cache cleared');
+      },
+
+      getUserStatusClass(username) {
+        const userStats = this.userStatsCache[username];
+        const userStatus = userStats?.user_status || 'Regular';
+        
+        switch (userStatus) {
+          case 'VIP':
+            return 'user-vip';
+          case 'Premium':
+            return 'user-premium';
+          case 'Supporter':
+            return 'user-supporter';
+          case 'Tipper':
+            return 'user-tipper';
+          case 'Moderator':
+            return 'user-moderator';
+          default:
+            return 'user-regular';
+        }
+      },
+
+      openUserProfile(username) {
+        const profileUrl = `https://chaturbate.com/${username}`;
+        window.open(profileUrl, '_blank');
+      },
+
+      startAutoRefresh() {
+        // Auto-refresh user stats every minute
+        setInterval(() => {
+          if (this.activeTab === 'users' && this.filteredUsers.length > 0) {
+            console.log('🔄 Auto-refreshing user stats...');
+            this.loadUserStatsForVisibleUsers();
+          }
+        }, 60000); // 60 seconds
       }
     },
 
     computed: {
       filteredUsers() {
+        let users = [];
+        
+        // First apply filters
         if (this.userFilter === 'all') {
-          return this.onlineUsersList;
+          users = [...this.onlineUsersList];
         } else if (this.userFilter === 'tippers') {
           const tipperUsernames = this.topTippers.map(t => t.username);
-          return this.onlineUsersList.filter(u => tipperUsernames.includes(u.username));
+          users = this.onlineUsersList.filter(u => tipperUsernames.includes(u.username));
         } else if (this.userFilter === 'moderators') {
-          return this.onlineUsersList.filter(u => u.status === 'Moderator');
+          users = this.onlineUsersList.filter(u => u.status === 'Moderator');
         }
-        return [];
+        
+        // Then apply sorting
+        return users.sort((a, b) => {
+          const aStats = this.userStatsCache[a.username];
+          const bStats = this.userStatsCache[b.username];
+          
+          // If no stats available, put them at the end
+          if (!aStats && !bStats) return 0;
+          if (!aStats) return 1;
+          if (!bStats) return -1;
+          
+          switch (this.userSort) {
+            case 'last_message':
+              const aMessage = new Date(aStats.last_message_time || 0);
+              const bMessage = new Date(bStats.last_message_time || 0);
+              return bMessage - aMessage; // Most recent first
+              
+            case 'last_tip':
+              const aTip = new Date(aStats.last_tip_time || 0);
+              const bTip = new Date(bStats.last_tip_time || 0);
+              return bTip - aTip; // Most recent first
+              
+            case 'total_tips':
+              return (bStats.total_tip_amount || 0) - (aStats.total_tip_amount || 0); // Highest first
+              
+            case 'session_tips':
+              // For session tips, we'll use today's tips as a proxy
+              // This would need to be enhanced to track actual session data
+              return (bStats.total_tips || 0) - (aStats.total_tips || 0); // Most tips first
+              
+            default:
+              return 0;
+          }
+        });
       }
     },
     
@@ -889,6 +1058,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Initialize online users count
       this.onlineUsers = this.onlineUsersList.length;
+      
+      // Start auto-refresh for user stats
+      this.startAutoRefresh();
       
       // Add welcome message after component mounts
       setTimeout(() => {

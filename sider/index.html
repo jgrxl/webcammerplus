@@ -426,16 +426,37 @@
                     Mods
                   </button>
                 </div>
+                <div class="users-sorting">
+                  <span class="sort-label">Sort by:</span>
+                  <button :class="['sort-btn', { 'active': userSort === 'last_message' }]" @click="setUserSort('last_message')">
+                    Last Message
+                  </button>
+                  <button :class="['sort-btn', { 'active': userSort === 'last_tip' }]" @click="setUserSort('last_tip')">
+                    Last Tip
+                  </button>
+                  <button :class="['sort-btn', { 'active': userSort === 'total_tips' }]" @click="setUserSort('total_tips')">
+                    Total Tips
+                  </button>
+                  <button :class="['sort-btn', { 'active': userSort === 'session_tips' }]" @click="setUserSort('session_tips')">
+                    Session Tips
+                  </button>
+                </div>
                 <div class="users-list">
                   <div v-for="user in filteredUsers" :key="user.username" class="user-item">
-                    <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
-                    <div class="user-info">
-                      <div class="user-name">{{ user.username }}</div>
-                      <div class="user-status">{{ user.status }}</div>
+                    <div class="user-basic">
+                      <div :class="['user-name', getUserStatusClass(user.username)]">{{ user.username }}</div>
+                    </div>
+                    <div class="user-stats-detailed" v-if="userStatsCache[user.username]">
+                      <div class="stat-line">Last msg: {{ formatTimeAgo(userStatsCache[user.username].last_message_time) }}</div>
+                      <div class="stat-line">Last tip: {{ formatTimeAgo(userStatsCache[user.username].last_tip_time) }}</div>
+                      <div class="stat-line">Tips: {{ userStatsCache[user.username].total_tips }} ({{ userStatsCache[user.username].total_tip_amount }} tokens)</div>
+                    </div>
+                    <div class="user-stats-loading" v-else-if="userStatsLoading.has(user.username)">
+                      Loading...
                     </div>
                     <div class="user-actions">
                       <button class="action-btn" title="Send PM">💬</button>
-                      <button class="action-btn" title="View Profile">👤</button>
+                      <button class="action-btn" title="View Profile" @click="openUserProfile(user.username)">👤</button>
                     </div>
                   </div>
                 </div>
