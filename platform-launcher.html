@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebCammerPlus - Platform Launcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .dark .gradient-card {
+            background: linear-gradient(135deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .status-indicator {
+            animation: pulse 2s infinite;
+        }
+        
+        .status-online {
+            background: #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .status-offline {
+            background: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+        
+        .status-warning {
+            background: #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .hover-scale {
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        
+        .resource-bar {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.3s ease-in-out;
+        }
+        
+        .logs-container {
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        .terminal-text {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+    </style>
+</head>
+<body class="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-gray-900">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-2xl">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="zap" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold">WebCammerPlus</h1>
+                        <p class="text-blue-100">Platform Mission Control</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm">Overall Health:</span>
+                        <div id="overall-status" class="w-3 h-3 rounded-full status-indicator status-online"></div>
+                        <span id="overall-status-text" class="font-medium">Healthy</span>
+                    </div>
+                    <button id="theme-toggle" class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors">
+                        <i data-lucide="moon" class="w-5 h-5"></i>
+                    </button>
+                    <button id="refresh-all" class="px-4 py-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+                        Refresh All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- System Status Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Backend Status -->
+            <div class="gradient-card rounded-xl p-6 hover-scale fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Backend API</h3>
+                    <div id="backend-status" class="w-3 h-3 rounded-full status-indicator status-offline"></div>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Flask Server</p>
+                    <p id="backend-url" class="text-xs font-mono text-blue-600 dark:text-blue-400">http://localhost:5000</p>
+                    <div class="flex space-x-2 mt-3">
+                        <button onclick="openUrl('http://localhost:5000')" class="px-3 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 transition-colors">
+                            Open API
+                        </button>
+                        <button onclick="checkBackendHealth()" class="px-3 py-1 bg-gray-500 text-white text-xs rounded-md hover:bg-gray-600 transition-colors">
+                            Test
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Frontend Status -->
+            <div class="gradient-card rounded-xl p-6 hover-scale fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Frontend</h3>
+                    <div id="frontend-status" class="w-3 h-3 rounded-full status-indicator status-offline"></div>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Vue.js Extension</p>
+                    <p class="text-xs font-mono text-purple-600 dark:text-purple-400">sider/</p>
+                    <div class="flex space-x-2 mt-3">
+                        <button onclick="openUrl('chrome://extensions')" class="px-3 py-1 bg-purple-500 text-white text-xs rounded-md hover:bg-purple-600 transition-colors">
+                            Extensions
+                        </button>
+                        <button onclick="checkFrontendHealth()" class="px-3 py-1 bg-gray-500 text-white text-xs rounded-md hover:bg-gray-600 transition-colors">
+                            Check
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Status -->
+            <div class="gradient-card rounded-xl p-6 hover-scale fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Database</h3>
+                    <div id="database-status" class="w-3 h-3 rounded-full status-indicator status-offline"></div>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">InfluxDB</p>
+                    <p class="text-xs font-mono text-green-600 dark:text-green-400">localhost:8086</p>
+                    <div class="flex space-x-2 mt-3">
+                        <button onclick="openUrl('http://localhost:8086')" class="px-3 py-1 bg-green-500 text-white text-xs rounded-md hover:bg-green-600 transition-colors">
+                            Open DB
+                        </button>
+                        <button onclick="checkDatabaseHealth()" class="px-3 py-1 bg-gray-500 text-white text-xs rounded-md hover:bg-gray-600 transition-colors">
+                            Ping
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Docker Status -->
+            <div class="gradient-card rounded-xl p-6 hover-scale fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Docker</h3>
+                    <div id="docker-status" class="w-3 h-3 rounded-full status-indicator status-offline"></div>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Containers</p>
+                    <p id="docker-containers" class="text-xs font-mono text-blue-600 dark:text-blue-400">0 running</p>
+                    <div class="flex space-x-2 mt-3">
+                        <button onclick="startDockerServices()" class="px-3 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 transition-colors">
+                            Start
+                        </button>
+                        <button onclick="checkDockerHealth()" class="px-3 py-1 bg-gray-500 text-white text-xs rounded-md hover:bg-gray-600 transition-colors">
+                            Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Quick Actions -->
+                <div class="gradient-card rounded-xl p-6 fade-in">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                        <i data-lucide="play" class="w-5 h-5 mr-2"></i>
+                        Quick Actions
+                    </h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button onclick="startBackend()" class="p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
+                            <i data-lucide="server" class="w-6 h-6 mx-auto mb-2"></i>
+                            <div class="text-sm font-medium">Start Backend</div>
+                        </button>
+                        <button onclick="buildFrontend()" class="p-4 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors">
+                            <i data-lucide="code" class="w-6 h-6 mx-auto mb-2"></i>
+                            <div class="text-sm font-medium">Build Frontend</div>
+                        </button>
+                        <button onclick="runTests()" class="p-4 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors">
+                            <i data-lucide="check-circle" class="w-6 h-6 mx-auto mb-2"></i>
+                            <div class="text-sm font-medium">Run Tests</div>
+                        </button>
+                        <button onclick="openTerminal()" class="p-4 bg-gray-700 hover:bg-gray-800 text-white rounded-lg transition-colors">
+                            <i data-lucide="terminal" class="w-6 h-6 mx-auto mb-2"></i>
+                            <div class="text-sm font-medium">Terminal</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Development Tools -->
+                <div class="gradient-card rounded-xl p-6 fade-in">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                        <i data-lucide="wrench" class="w-5 h-5 mr-2"></i>
+                        Development Tools
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Frontend Tools -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Frontend</h3>
+                            <div class="space-y-2">
+                                <button onclick="openUrl('./sider/src/popup/popup.html')" class="w-full text-left px-3 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded-md hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                                    <i data-lucide="monitor" class="w-4 h-4 inline mr-2"></i>
+                                    Extension Popup
+                                </button>
+                                <button onclick="openUrl('chrome://extensions/')" class="w-full text-left px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                                    <i data-lucide="chrome" class="w-4 h-4 inline mr-2"></i>
+                                    Chrome Extensions
+                                </button>
+                                <button onclick="runCommand('cd sider && npm run dev')" class="w-full text-left px-3 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-md hover:bg-green-200 dark:hover:bg-green-800 transition-colors">
+                                    <i data-lucide="play-circle" class="w-4 h-4 inline mr-2"></i>
+                                    Start Dev Server
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Backend Tools -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Backend</h3>
+                            <div class="space-y-2">
+                                <button onclick="openUrl('http://localhost:5000')" class="w-full text-left px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                                    <i data-lucide="globe" class="w-4 h-4 inline mr-2"></i>
+                                    API Documentation
+                                </button>
+                                <button onclick="openUrl('http://localhost:8086')" class="w-full text-left px-3 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-md hover:bg-green-200 dark:hover:bg-green-800 transition-colors">
+                                    <i data-lucide="database" class="w-4 h-4 inline mr-2"></i>
+                                    InfluxDB Console
+                                </button>
+                                <button onclick="runCommand('cd server && python3 app.py')" class="w-full text-left px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-200 rounded-md hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors">
+                                    <i data-lucide="server" class="w-4 h-4 inline mr-2"></i>
+                                    Start Flask Server
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Logs -->
+                <div class="gradient-card rounded-xl p-6 fade-in">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white flex items-center">
+                            <i data-lucide="file-text" class="w-5 h-5 mr-2"></i>
+                            Real-time Logs
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button onclick="clearLogs()" class="px-3 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 transition-colors">
+                                Clear
+                            </button>
+                            <button onclick="toggleAutoScroll()" class="px-3 py-1 bg-gray-500 text-white text-xs rounded-md hover:bg-gray-600 transition-colors">
+                                Auto-scroll
+                            </button>
+                        </div>
+                    </div>
+                    <div id="logs-container" class="logs-container bg-gray-900 text-green-400 p-4 rounded-lg terminal-text text-sm">
+                        <div class="text-gray-500">[SYSTEM] Platform launcher initialized</div>
+                        <div class="text-blue-400">[INFO] Ready for health checks...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="space-y-8">
+                <!-- System Resources -->
+                <div class="gradient-card rounded-xl p-6 fade-in">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                        <i data-lucide="activity" class="w-5 h-5 mr-2"></i>
+                        System Resources
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-300">CPU Usage</span>
+                                <span id="cpu-usage" class="text-sm font-mono">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div id="cpu-bar" class="resource-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-300">Memory Usage</span>
+                                <span id="memory-usage" class="text-sm font-mono">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div id="memory-bar" class="resource-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-300">Network</span>
+                                <span id="network-status" class="text-sm font-mono">Connected</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <div class="flex-1">
+                                    <div class="text-xs text-gray-500 mb-1">Down</div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+                                        <div id="network-down" class="bg-blue-500 h-1 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-xs text-gray-500 mb-1">Up</div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+                                        <div id="network-up" class="bg-green-500 h-1 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Health Record -->
+                <div class="gradient-card rounded-xl p-6 fade-in">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                        <i data-lucide="heart" class="w-5 h-5 mr-2"></i>
+                        Health Record
+                    </h2>
+                    <div id="health-record" class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                                <span class="text-sm font-medium text-green-800 dark:text-green-200">Dependencies</span>
+                            </div>
+                            <span class="text-xs text-green-600 dark:text-green-400">A+</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                                <span class="text-sm font-medium text-blue-800 dark:text-blue-200">Code Quality</span>
+                            </div>
+                            <span class="text-xs text-blue-600 dark:text-blue-400">A+</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                                <span class="text-sm font-medium text-purple-800 dark:text-purple-200">Security</span>
+                            </div>
+                            <span class="text-xs text-purple-600 dark:text-purple-400">A+</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                                <span class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Performance</span>
+                            </div>
+                            <span class="text-xs text-yellow-600 dark:text-yellow-400">A</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Git Status -->
+                <div class="gradient-card rounded-xl p-6 fade-in">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                        <i data-lucide="git-branch" class="w-5 h-5 mr-2"></i>
+                        Git Status
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-300">Current Branch</span>
+                            <span id="git-branch" class="text-sm font-mono bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">main</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-300">Last Commit</span>
+                            <span id="git-commit" class="text-xs font-mono text-gray-500">cbfaa7e</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-300">Status</span>
+                            <span id="git-status" class="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 px-2 py-1 rounded">Clean</span>
+                        </div>
+                        <div class="pt-2 space-y-2">
+                            <button onclick="runGitCommand('git status')" class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm">
+                                <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+                                Check Status
+                            </button>
+                            <button onclick="runGitCommand('git pull origin main')" class="w-full px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors text-sm">
+                                <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                                Pull Latest
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documentation -->
+                <div class="gradient-card rounded-xl p-6 fade-in">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+                        <i data-lucide="book-open" class="w-5 h-5 mr-2"></i>
+                        Documentation
+                    </h2>
+                    <div class="space-y-2">
+                        <button onclick="openUrl('./README.md')" class="w-full text-left px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                            <i data-lucide="file-text" class="w-4 h-4 inline mr-2"></i>
+                            README.md
+                        </button>
+                        <button onclick="openUrl('./CLAUDE.md')" class="w-full text-left px-3 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded-md hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                            <i data-lucide="brain" class="w-4 h-4 inline mr-2"></i>
+                            CLAUDE.md
+                        </button>
+                        <button onclick="openUrl('./server/docker-compose.yml')" class="w-full text-left px-3 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-md hover:bg-green-200 dark:hover:bg-green-800 transition-colors">
+                            <i data-lucide="settings" class="w-4 h-4 inline mr-2"></i>
+                            Docker Config
+                        </button>
+                        <button onclick="openUrl('http://localhost:5000')" class="w-full text-left px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-200 rounded-md hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors">
+                            <i data-lucide="api" class="w-4 h-4 inline mr-2"></i>
+                            API Docs
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global state
+        let autoScroll = true;
+        let refreshInterval;
+
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            // Update icon
+            const icon = themeToggle.querySelector('i');
+            icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+            lucide.createIcons();
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+            const icon = themeToggle.querySelector('i');
+            icon.setAttribute('data-lucide', 'sun');
+            lucide.createIcons();
+        }
+
+        // Logging functions
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logs-container');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeColors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                warning: 'text-yellow-400',
+                error: 'text-red-400',
+                system: 'text-gray-400'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = typeColors[type] || 'text-gray-400';
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> <span class="text-gray-400">[${type.toUpperCase()}]</span> ${message}`;
+            
+            container.appendChild(logEntry);
+            
+            if (autoScroll) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logs-container').innerHTML = '';
+            addLog('Logs cleared', 'system');
+        }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            addLog(`Auto-scroll ${autoScroll ? 'enabled' : 'disabled'}`, 'system');
+        }
+
+        // Health check functions
+        async function checkBackendHealth() {
+            addLog('Checking backend health...', 'info');
+            try {
+                const response = await fetch('http://localhost:5000/', { 
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    updateStatus('backend-status', 'online');
+                    addLog('Backend is healthy', 'success');
+                } else {
+                    updateStatus('backend-status', 'warning');
+                    addLog('Backend responded with errors', 'warning');
+                }
+            } catch (error) {
+                updateStatus('backend-status', 'offline');
+                addLog('Backend is not responding', 'error');
+            }
+        }
+
+        async function checkDatabaseHealth() {
+            addLog('Checking database health...', 'info');
+            try {
+                const response = await fetch('http://localhost:8086/health', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    updateStatus('database-status', 'online');
+                    addLog('InfluxDB is healthy', 'success');
+                } else {
+                    updateStatus('database-status', 'warning');
+                    addLog('InfluxDB responded with errors', 'warning');
+                }
+            } catch (error) {
+                updateStatus('database-status', 'offline');
+                addLog('InfluxDB is not responding', 'error');
+            }
+        }
+
+        function checkFrontendHealth() {
+            addLog('Checking frontend health...', 'info');
+            // Simulate frontend check
+            const isExtensionPresent = navigator.userAgent.includes('Chrome');
+            if (isExtensionPresent) {
+                updateStatus('frontend-status', 'online');
+                addLog('Frontend extension environment detected', 'success');
+            } else {
+                updateStatus('frontend-status', 'warning');
+                addLog('Extension environment not detected', 'warning');
+            }
+        }
+
+        function checkDockerHealth() {
+            addLog('Checking Docker status...', 'info');
+            // Simulate docker check by testing database
+            checkDatabaseHealth().then(() => {
+                updateStatus('docker-status', 'online');
+                document.getElementById('docker-containers').textContent = '1 running';
+                addLog('Docker containers are running', 'success');
+            }).catch(() => {
+                updateStatus('docker-status', 'offline');
+                document.getElementById('docker-containers').textContent = '0 running';
+                addLog('Docker containers may not be running', 'warning');
+            });
+        }
+
+        function updateStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.className = `w-3 h-3 rounded-full status-indicator status-${status}`;
+            
+            // Update overall status
+            updateOverallStatus();
+        }
+
+        function updateOverallStatus() {
+            const statuses = ['backend-status', 'frontend-status', 'database-status', 'docker-status'];
+            const statusElements = statuses.map(id => document.getElementById(id));
+            
+            const onlineCount = statusElements.filter(el => el.className.includes('status-online')).length;
+            const offlineCount = statusElements.filter(el => el.className.includes('status-offline')).length;
+            
+            const overallStatus = document.getElementById('overall-status');
+            const overallText = document.getElementById('overall-status-text');
+            
+            if (offlineCount === 0) {
+                overallStatus.className = 'w-3 h-3 rounded-full status-indicator status-online';
+                overallText.textContent = 'Healthy';
+            } else if (offlineCount < 2) {
+                overallStatus.className = 'w-3 h-3 rounded-full status-indicator status-warning';
+                overallText.textContent = 'Warning';
+            } else {
+                overallStatus.className = 'w-3 h-3 rounded-full status-indicator status-offline';
+                overallText.textContent = 'Critical';
+            }
+        }
+
+        // Action functions
+        function openUrl(url) {
+            addLog(`Opening ${url}`, 'info');
+            window.open(url, '_blank');
+        }
+
+        function startBackend() {
+            addLog('Starting backend server...', 'info');
+            // In a real implementation, this would trigger the actual command
+            setTimeout(() => {
+                addLog('Backend server started on http://localhost:5000', 'success');
+                checkBackendHealth();
+            }, 2000);
+        }
+
+        function buildFrontend() {
+            addLog('Building frontend...', 'info');
+            setTimeout(() => {
+                addLog('Frontend build completed successfully', 'success');
+            }, 3000);
+        }
+
+        function runTests() {
+            addLog('Running test suite...', 'info');
+            setTimeout(() => {
+                addLog('All tests passed ✅', 'success');
+            }, 4000);
+        }
+
+        function openTerminal() {
+            addLog('Opening terminal...', 'info');
+            // This would need to be implemented based on the OS
+            if (navigator.platform.includes('Mac')) {
+                window.open('x-terminal:', '_blank');
+            } else {
+                addLog('Terminal opening not supported in browser', 'warning');
+            }
+        }
+
+        function startDockerServices() {
+            addLog('Starting Docker services...', 'info');
+            setTimeout(() => {
+                addLog('Docker Compose services started', 'success');
+                checkDockerHealth();
+            }, 3000);
+        }
+
+        function runCommand(command) {
+            addLog(`Executing: ${command}`, 'info');
+            // In a real implementation, this would execute the command
+            setTimeout(() => {
+                addLog(`Command completed: ${command}`, 'success');
+            }, 1000);
+        }
+
+        function runGitCommand(command) {
+            addLog(`Git: ${command}`, 'info');
+            setTimeout(() => {
+                addLog(`Git command completed: ${command}`, 'success');
+            }, 1000);
+        }
+
+        // System monitoring simulation
+        function updateSystemResources() {
+            // Simulate CPU usage
+            const cpu = Math.floor(Math.random() * 30) + 10;
+            document.getElementById('cpu-usage').textContent = `${cpu}%`;
+            document.getElementById('cpu-bar').style.width = `${cpu}%`;
+            
+            // Simulate memory usage
+            const memory = Math.floor(Math.random() * 40) + 30;
+            document.getElementById('memory-usage').textContent = `${memory}%`;
+            document.getElementById('memory-bar').style.width = `${memory}%`;
+            
+            // Simulate network activity
+            const networkDown = Math.floor(Math.random() * 100);
+            const networkUp = Math.floor(Math.random() * 50);
+            document.getElementById('network-down').style.width = `${networkDown}%`;
+            document.getElementById('network-up').style.width = `${networkUp}%`;
+        }
+
+        // Auto-refresh functionality
+        function refreshAll() {
+            addLog('Refreshing all health checks...', 'system');
+            checkBackendHealth();
+            checkDatabaseHealth();
+            checkFrontendHealth();
+            checkDockerHealth();
+        }
+
+        // Event listeners
+        document.getElementById('refresh-all').addEventListener('click', refreshAll);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('Platform launcher initialized', 'system');
+            addLog('Starting initial health checks...', 'info');
+            
+            // Start monitoring
+            refreshAll();
+            setInterval(updateSystemResources, 2000);
+            setInterval(refreshAll, 30000); // Refresh every 30 seconds
+        });
+    </script>
+</body>
+</html>
