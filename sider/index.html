@@ -297,6 +297,58 @@
                   <button :class="['message-filter-btn', { 'active': messageFilters.includes('system') }]" @click="toggleMessageFilter('system')">
                     ⚙️ System
                   </button>
+                  <div class="message-filter-menu">
+                    <button class="filter-menu-btn" @click="toggleFilterMenu" title="More filters">
+                      ⋯
+                    </button>
+                    <div v-if="showFilterMenu" class="filter-dropdown">
+                      <div class="filter-section">
+                        <h4>Sort Messages</h4>
+                        <label class="filter-option">
+                          <input type="radio" v-model="messageSortOrder" value="newest" @change="applyMessageSort">
+                          <span>Newest First</span>
+                        </label>
+                        <label class="filter-option">
+                          <input type="radio" v-model="messageSortOrder" value="oldest" @change="applyMessageSort">
+                          <span>Oldest First</span>
+                        </label>
+                      </div>
+                      <div class="filter-section">
+                        <h4>Filter by Users</h4>
+                        <label class="filter-option">
+                          <input type="checkbox" v-model="showTippersOnly" @change="applyUserFilter">
+                          <span>Tippers Only</span>
+                        </label>
+                        <label class="filter-option">
+                          <input type="checkbox" v-model="showModeratorsOnly" @change="applyUserFilter">
+                          <span>Moderators Only</span>
+                        </label>
+                      </div>
+                      <div class="filter-section">
+                        <h4>Tip Amount Filter</h4>
+                        <div class="tip-amount-filter">
+                          <label>
+                            <input type="checkbox" v-model="enableTipAmountFilter" @change="applyTipFilter">
+                            <span>Min tip amount:</span>
+                          </label>
+                          <input 
+                            type="number" 
+                            v-model="minTipAmount" 
+                            :disabled="!enableTipAmountFilter"
+                            @input="applyTipFilter"
+                            min="1"
+                            placeholder="0"
+                            class="tip-amount-input"
+                          >
+                          <span>tokens</span>
+                        </div>
+                      </div>
+                      <div class="filter-actions">
+                        <button @click="resetMessageFilters" class="reset-btn">Reset All</button>
+                        <button @click="closeFilterMenu" class="close-btn">Close</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div class="events-container" ref="eventsContainer">
                   <div v-if="filteredEvents.length === 0" class="no-events">
@@ -306,7 +358,7 @@
                     <div class="event-timestamp">{{ formatTime(event.timestamp) }}</div>
                     <div class="event-content">
                       <span class="event-type">{{ event.type }}</span>
-                      <span class="event-message">{{ event.message }}</span>
+                      <span class="event-message" v-html="formatMessageWithClickableUsers(event)"></span>
                     </div>
                   </div>
                 </div>
@@ -721,7 +773,63 @@
         </div>
       </div>
     </footer>
+    
+    <!-- User Info Modal -->
+    <div v-if="showUserInfoModal && selectedUserInfo" class="user-info-modal-overlay" @click="closeUserInfoModal">
+    <div class="user-info-modal" @click.stop>
+      <div class="user-info-header">
+        <h3>{{ selectedUserInfo.username }}</h3>
+        <button class="close-modal-btn" @click="closeUserInfoModal">×</button>
+      </div>
+      
+      <div class="user-info-content">
+        <div class="user-info-avatar">
+          {{ selectedUserInfo.username.charAt(0).toUpperCase() }}
+        </div>
+        
+        <div class="user-info-details">
+          <div class="info-section">
+            <h4>User Status</h4>
+            <span :class="['user-status-badge', getUserStatusClass(selectedUserInfo.username)]">
+              {{ selectedUserInfo.status }}
+            </span>
+          </div>
+          
+          <div v-if="selectedUserInfo.stats" class="info-section">
+            <h4>User Statistics</h4>
+            <div class="user-stats-display">
+              <div class="stat-row">
+                <span class="stat-label">Last tip:</span>
+                <span class="stat-value">{{ formatTimeAgo(selectedUserInfo.stats.last_tip_time) }}</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Tips:</span>
+                <span class="stat-value">{{ selectedUserInfo.stats.total_tips || 0 }} ({{ selectedUserInfo.stats.total_tip_amount || 0 }} tokens)</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Last message:</span>
+                <span class="stat-value">{{ formatTimeAgo(selectedUserInfo.stats.last_message_time) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div v-else-if="loadingUserInfo" class="info-section">
+            <span class="loading-text">Loading user statistics...</span>
+          </div>
+          
+          <div class="info-actions">
+            <button class="action-button primary" @click="openUserProfile(selectedUserInfo.username)">
+              👤 View Profile
+            </button>
+            <button class="action-button secondary" @click="startPrivateMessage(selectedUserInfo.username)">
+              💬 Send PM
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
   <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="vue.js"></script>

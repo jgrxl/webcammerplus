@@ -1,6 +1,14 @@
 // Vue 3 Chat Interface for Sider AI Clone
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('🚀 DOM loaded, starting Vue app...');
+  
+  if (typeof Vue === 'undefined') {
+    console.error('❌ Vue is not loaded!');
+    return;
+  }
+  
   const { createApp } = Vue;
+  console.log('✅ Vue is loaded, creating app...');
   
   const app = createApp({
     data() {
@@ -32,6 +40,15 @@ document.addEventListener('DOMContentLoaded', function() {
         eventIdCounter: 1,
         autoScroll: true,
         messageFilters: ['tip', 'chat', 'system'],
+        showFilterMenu: false,
+        messageSortOrder: 'newest',
+        showTippersOnly: false,
+        showModeratorsOnly: false,
+        enableTipAmountFilter: false,
+        minTipAmount: 1,
+        showUserInfoModal: false,
+        selectedUserInfo: null,
+        loadingUserInfo: false,
         websocket: null,
         refreshDebounceTimer: null,
         activeTab: 'messages',
@@ -549,6 +566,40 @@ document.addEventListener('DOMContentLoaded', function() {
         this.userSearchQuery = '';
       },
 
+      toggleFilterMenu() {
+        this.showFilterMenu = !this.showFilterMenu;
+      },
+
+      closeFilterMenu() {
+        this.showFilterMenu = false;
+      },
+
+      applyMessageSort() {
+        // Trigger filteredEvents recomputation
+        this.$forceUpdate();
+      },
+
+      applyUserFilter() {
+        // Trigger filteredEvents recomputation
+        this.$forceUpdate();
+      },
+
+      applyTipFilter() {
+        // Trigger filteredEvents recomputation
+        this.$forceUpdate();
+      },
+
+      resetMessageFilters() {
+        this.messageFilters = ['tip', 'chat', 'system'];
+        this.messageSortOrder = 'newest';
+        this.showTippersOnly = false;
+        this.showModeratorsOnly = false;
+        this.enableTipAmountFilter = false;
+        this.minTipAmount = 1;
+      },
+
+
+
       getTipperBadge(index) {
         const badges = ['👑', '💎', '⭐', '🥇', '🥈', '🥉'];
         return badges[index] || '🎖️';
@@ -1043,6 +1094,92 @@ document.addEventListener('DOMContentLoaded', function() {
           default:
             return 'system';
         }
+      },
+
+      formatMessageWithClickableUsers(event) {
+        // Format the event message with clickable usernames
+        let message = event.message || '';
+        console.log('🔍 Formatting message:', { event, message });
+        
+        // Extract username from the message for tip and chat events
+        let username = null;
+        if (event.username) {
+          username = event.username;
+        } else if (event.type === 'tip' && message.includes(' tipped ')) {
+          const tipMatch = message.match(/^(.+?) tipped/);
+          if (tipMatch) {
+            username = tipMatch[1];
+          }
+        } else if (event.type === 'chat' && message.includes(': ')) {
+          const chatMatch = message.match(/^(.+?):/);
+          if (chatMatch) {
+            username = chatMatch[1];
+          }
+        }
+
+        // Clean username by removing emojis and extra spaces
+        if (username) {
+          username = username.replace(/[^\w\s]/g, '').trim(); // Remove emojis and special chars
+          if (!username) {
+            username = null; // If nothing left after cleaning, set to null
+          }
+        }
+
+        console.log('🔍 Extracted username:', username);
+
+        // If we found a username, make it clickable
+        if (username && username !== 'System') {
+          const escapedUsername = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const usernameRegex = new RegExp(`\\b${escapedUsername}\\b`, 'g');
+          const clickableHtml = `<span class="clickable-username" onclick="window.vueApp.handleUserClick('${username}')">${username}</span>`;
+          message = message.replace(usernameRegex, clickableHtml);
+          console.log('✅ Made username clickable:', { username, clickableHtml, finalMessage: message });
+        }
+
+        return message;
+      },
+
+      async handleUserClick(username) {
+        console.log('👆 User clicked:', username);
+        
+        // Set loading state
+        this.loadingUserInfo = true;
+        this.showUserInfoModal = true;
+        this.selectedUserInfo = {
+          username: username,
+          status: this.getUserStatusFromCache(username),
+          stats: null
+        };
+
+        try {
+          // Fetch user statistics
+          const stats = await this.getUserStats(username, true); // Force refresh
+          this.selectedUserInfo.stats = stats;
+        } catch (error) {
+          console.error('Failed to load user info:', error);
+        } finally {
+          this.loadingUserInfo = false;
+        }
+      },
+
+      getUserStatusFromCache(username) {
+        const userStats = this.userStatsCache[username];
+        return userStats?.user_status || 'Regular';
+      },
+
+      closeUserInfoModal() {
+        this.showUserInfoModal = false;
+        this.selectedUserInfo = null;
+        this.loadingUserInfo = false;
+      },
+
+      startPrivateMessage(username) {
+        // This would integrate with the inbox system
+        console.log('Starting private message with:', username);
+        // For now, just close the modal and switch to inbox tab
+        this.closeUserInfoModal();
+        this.switchTab('inbox');
+        // In a real implementation, this would open a compose window
       }
     },
 
@@ -1052,11 +1189,51 @@ document.addEventListener('DOMContentLoaded', function() {
           return [];
         }
         
-        return this.events.filter(event => {
-          // Map event types to filter categories
+        let filtered = this.events.filter(event => {
+          // Basic type filtering
           const eventCategory = this.getEventCategory(event.type);
-          return this.messageFilters.includes(eventCategory);
+          if (!this.messageFilters.includes(eventCategory)) {
+            return false;
+          }
+
+          // User type filtering
+          if (this.showTippersOnly && eventCategory !== 'tip') {
+            // Only show tips if tippers only is enabled
+            return false;
+          }
+
+          if (this.showModeratorsOnly) {
+            // Check if user is a moderator (simplified check)
+            const isModerator = event.message && (
+              event.message.includes('Moderator') || 
+              event.username === 'ModeratorX' // Add other moderator checks as needed
+            );
+            if (!isModerator) {
+              return false;
+            }
+          }
+
+          // Tip amount filtering
+          if (this.enableTipAmountFilter && eventCategory === 'tip') {
+            const tipMatch = event.message.match(/tipped (\d+) tokens/);
+            if (tipMatch) {
+              const tipAmount = parseInt(tipMatch[1]);
+              if (tipAmount < this.minTipAmount) {
+                return false;
+              }
+            }
+          }
+
+          return true;
         });
+
+        // Apply sorting
+        if (this.messageSortOrder === 'oldest') {
+          filtered = filtered.slice().reverse();
+        }
+        // 'newest' is already the default order
+
+        return filtered;
       },
 
       filteredUsers() {
@@ -1165,6 +1342,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
+  console.log('🔧 Mounting Vue app to #app...');
   const vueApp = app.mount('#app');
   window.vueApp = vueApp;
+  console.log('✅ Vue app mounted successfully!');
+  console.log('🔍 Initial modal state:', {
+    showUserInfoModal: vueApp.showUserInfoModal,
+    selectedUserInfo: vueApp.selectedUserInfo
+  });
 });
