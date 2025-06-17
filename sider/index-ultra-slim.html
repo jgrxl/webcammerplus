@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebCammer+</title>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="popup.css">
+  
+  <!-- Core Libraries -->
+  <script src="vue.js"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Core Services -->
+  <script src="auth0-service.js"></script>
+  <script src="novita-api.js"></script>
+  <script src="user-menu.js"></script>
+  
+  <!-- Helpers (Pure Functions) -->
+  <script src="helpers/EventParser.js"></script>
+  <script src="helpers/TimeFormatter.js"></script>
+  
+  <!-- Services (Singletons) -->
+  <script src="services/WebSocketService.js"></script>
+  <script src="services/ApiService.js"></script>
+  <script src="services/StateManager.js"></script>
+  
+  <!-- Modules (Business Logic) -->
+  <script src="modules/AuthModule.js"></script>
+  <script src="modules/FilterModule.js"></script>
+  <script src="modules/InboxModule.js"></script>
+  <script src="modules/ChatModule.js"></script>
+  
+  <!-- Component System -->
+  <script src="components/component-loader.js"></script>
+  
+  <!-- UI Components -->
+  <script src="components/common/AttachButton.js"></script>
+  <script src="components/common/UserInfoModal.js"></script>
+  <script src="components/sidebar/Sidebar.js"></script>
+  <script src="components/home/HomeView.js"></script>
+  <script src="components/home/MessagesTab.js"></script>
+  <script src="components/home/MessageFilterMenu.js"></script>
+  <script src="components/chat/ChatView.js"></script>
+  <script src="components/analytics/AnalyticsView.js"></script>
+  
+  <!-- Main App (Ultra Slim) -->
+  <script src="components/AppUltraSlim.js"></script>
+  
+  <!-- Bootstrap -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 WebCammer+ Ultra Slim Edition');
+      
+      if (typeof Vue === 'undefined') {
+        console.error('❌ Vue not loaded!');
+        return;
+      }
+      
+      // Register all components and create app
+      const app = window.componentLoader.createApp(window.AppUltraSlim);
+      
+      // Mount app
+      const vueApp = app.mount('#app');
+      window.vueApp = vueApp;
+      
+      console.log('✅ App mounted with modules:', {
+        helpers: ['EventParser', 'TimeFormatter'],
+        services: ['WebSocket', 'API', 'StateManager'],
+        modules: ['Auth', 'Filter', 'Inbox', 'Chat'],
+        components: window.componentLoader.components.size + ' registered'
+      });
+    });
+  </script>
+</body>
+</html>

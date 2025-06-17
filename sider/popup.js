@@ -1488,6 +1488,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 10);
           });
         }
+      },
+      
+      isAuthenticated(newVal, oldVal) {
+        // React to authentication state changes
+        if (newVal !== oldVal) {
+          console.log('Authentication state changed:', oldVal, '->', newVal);
+          
+          // Update user menu when auth state changes
+          if (window.userMenu) {
+            window.userMenu.refresh();
+          }
+          
+          // Force update the component to ensure UI reflects new state
+          this.$forceUpdate();
+        }
       }
     },
     
@@ -1495,8 +1510,21 @@ document.addEventListener('DOMContentLoaded', function() {
       // Check auth status after component mounts
       await this.checkAuthStatus();
       
-      // Refresh user menu to sync authentication state only if authenticated
-      if (window.userMenu && this.isAuthenticated) {
+      // Check if we just logged in
+      const justLoggedIn = sessionStorage.getItem('auth0_just_logged_in') === 'true';
+      if (justLoggedIn) {
+        console.log('Just logged in, refreshing UI components...');
+        sessionStorage.removeItem('auth0_just_logged_in');
+        
+        // Force refresh all auth-dependent components
+        if (window.userMenu) {
+          await window.userMenu.refresh();
+        }
+        
+        // Trigger a re-render of the sidebar
+        this.$forceUpdate();
+      } else if (window.userMenu && this.isAuthenticated) {
+        // Normal refresh for already authenticated users
         await window.userMenu.refresh();
       }
       
@@ -1527,4 +1555,12 @@ document.addEventListener('DOMContentLoaded', function() {
     showUserInfoModal: vueApp.showUserInfoModal,
     selectedUserInfo: vueApp.selectedUserInfo
   });
+  
+  // Set up a periodic check for auth state changes
+  // This ensures UI stays in sync even after redirects
+  setInterval(async () => {
+    if (window.vueApp && window.vueApp.checkAuthStatus) {
+      await window.vueApp.checkAuthStatus();
+    }
+  }, 5000); // Check every 5 seconds
 });

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics API Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .info-box {
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+      color: #1565c0;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .warning-box {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      color: #856404;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .app-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      height: 600px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Analytics Rankings - Real API Test</h1>
+    
+    <div class="info-box">
+      <strong>ℹ️ Test Information:</strong><br>
+      This page tests the Analytics View component with real API calls to the backend.<br>
+      Make sure the Flask backend server is running on http://localhost:5000
+    </div>
+    
+    <div class="warning-box">
+      <strong>⚠️ Requirements:</strong><br>
+      1. Backend server must be running: <code>python3 app.py</code><br>
+      2. InfluxDB must be running: <code>docker-compose up -d</code><br>
+      3. You must be authenticated (the component will prompt for login if needed)
+    </div>
+    
+    <div class="app-container">
+      <div id="app"></div>
+    </div>
+  </div>
+
+  <!-- Load all required scripts -->
+  <script src="vue.js"></script>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+  
+  <!-- Services -->
+  <script src="auth0-service.js"></script>
+  <script src="services/ApiService.js"></script>
+  
+  <!-- Component System -->
+  <script src="components/component-loader.js"></script>
+  
+  <!-- Analytics Component -->
+  <script src="components/analytics/AnalyticsView.js"></script>
+  
+  <script>
+    // Simple test app
+    const TestApp = {
+      data() {
+        return {
+          authenticated: false,
+          checkingAuth: true
+        };
+      },
+      
+      async mounted() {
+        // Check authentication
+        try {
+          const auth0Service = await window.getAuth0Service();
+          this.authenticated = await auth0Service.isAuthenticated();
+          
+          if (!this.authenticated) {
+            console.log('Not authenticated - redirecting to login...');
+            await auth0Service.login();
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+        } finally {
+          this.checkingAuth = false;
+        }
+      },
+      
+      methods: {
+        handleViewUser(username) {
+          alert(`View user profile: ${username}`);
+        }
+      },
+      
+      template: `
+        <div style="height: 100%; display: flex; flex-direction: column;">
+          <div v-if="checkingAuth" style="display: flex; align-items: center; justify-content: center; height: 100%;">
+            <div style="text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+              <p>Checking authentication...</p>
+            </div>
+          </div>
+          
+          <div v-else-if="!authenticated" style="display: flex; align-items: center; justify-content: center; height: 100%;">
+            <div style="text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
+              <p>Authentication required. Redirecting to login...</p>
+            </div>
+          </div>
+          
+          <analytics-view v-else @view-user="handleViewUser" />
+        </div>
+      `
+    };
+    
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('🚀 Initializing Analytics API Test');
+      
+      // Create and mount app
+      const app = window.componentLoader.createApp(TestApp);
+      app.mount('#app');
+      
+      console.log('✅ App mounted - Analytics will load real data from API');
+    });
+  </script>
+</body>
+</html>

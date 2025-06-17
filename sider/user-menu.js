@@ -972,9 +972,17 @@ class UserMenu {
 let userMenu = null;
 
 // Initialize user menu when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    userMenu = new UserMenu();
-    window.userMenu = userMenu; // Make globally accessible
+document.addEventListener('DOMContentLoaded', async () => {
+    // Wait a bit to ensure Auth0 is initialized
+    setTimeout(async () => {
+        userMenu = new UserMenu();
+        window.userMenu = userMenu; // Make globally accessible
+        
+        // If Vue app exists, sync auth state
+        if (window.vueApp && window.vueApp.checkAuthStatus) {
+            await window.vueApp.checkAuthStatus();
+        }
+    }, 100);
 });
 
 // Export for use in other files

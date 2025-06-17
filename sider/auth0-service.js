@@ -63,6 +63,8 @@ class Auth0Service {
         console.log('Handling redirect callback...');
         sessionStorage.setItem('auth0_callback_processed', 'true');
         await this.handleRedirectCallback();
+        // Set a flag to indicate we just logged in
+        sessionStorage.setItem('auth0_just_logged_in', 'true');
       } else if (!isCallbackUrl && hasProcessedCallback) {
         // Clear the flag when we're no longer on a callback URL
         sessionStorage.removeItem('auth0_callback_processed');
