@@ -4,6 +4,8 @@ class UserMenu {
         this.isAuthenticated = false;
         this.user = null;
         this.api = new WebCammerAPI();
+        this.lastSubscriptionLoad = 0;
+        this.subscriptionLoadDebounce = 5000; // 5 seconds
         this.init();
     }
 
@@ -16,15 +18,17 @@ class UserMenu {
     }
 
     syncWithVueComponent() {
-        if (window.vueApp && window.vueApp.checkAuthStatus) {
-            window.vueApp.checkAuthStatus();
-        }
+        // Removed to prevent circular dependency
+        // Vue component will manage its own auth state
     }
 
     async refresh() {
         await this.checkAuthStatus();
         this.createMenuHTML();
-        this.bindEvents();
+        // Only update subscription if authenticated
+        if (this.isAuthenticated) {
+            this.loadSubscriptionInfo();
+        }
         this.syncWithVueComponent();
     }
 
@@ -650,20 +654,59 @@ class UserMenu {
     }
 
     async loadSubscriptionInfo() {
+        // Only load subscription info if authenticated
+        if (!this.isAuthenticated) {
+            console.log('User not authenticated, skipping subscription info load');
+            this.updateSubscriptionBadge('free');
+            return;
+        }
+
+        // Debounce to prevent rapid API calls
+        const now = Date.now();
+        if (now - this.lastSubscriptionLoad < this.subscriptionLoadDebounce) {
+            console.log('Skipping subscription load - too soon since last load');
+            return;
+        }
+        this.lastSubscriptionLoad = now;
+
         try {
-            const response = await fetch('/api/v1/auth/usage', {
-                headers: await this.api.getAuthHeaders()
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+            
+            const baseURL = window.location.origin.includes('localhost') ? 'http://localhost:5000' : window.location.origin;
+            const response = await fetch(`${baseURL}/api/v1/auth/usage`, {
+                headers: await this.api.getAuthHeaders(),
+                signal: controller.signal
             });
 
+            clearTimeout(timeoutId);
+
             if (response.ok) {
-                const data = await response.json();
-                this.updateSubscriptionBadge(data.tier);
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    this.updateSubscriptionBadge(data.tier);
+                } else {
+                    console.warn('Server returned non-JSON response, using default subscription info');
+                    this.updateSubscriptionBadge('free');
+                }
+            } else if (response.status === 401) {
+                console.log('User not authenticated (401), using default subscription info');
+                this.updateSubscriptionBadge('free');
+            } else if (response.status === 500) {
+                console.warn('Server error (500) - this usually means authentication is required');
+                this.updateSubscriptionBadge('free');
             } else {
-                console.warn('Server not available, using default subscription info');
+                console.warn(`Server returned ${response.status}, using default subscription info`);
                 this.updateSubscriptionBadge('free');
             }
         } catch (error) {
-            console.warn('Server not available, using default subscription info:', error);
+            if (error.name === 'AbortError') {
+                console.warn('Subscription request timed out - server may be unavailable');
+            } else {
+                console.warn('Failed to load subscription info:', error.message);
+            }
             this.updateSubscriptionBadge('free');
         }
     }
@@ -684,17 +727,43 @@ class UserMenu {
         content.innerHTML = '<div class="loading">Loading subscription details...</div>';
 
         try {
+            const baseURL = window.location.origin.includes('localhost') ? 'http://localhost:5000' : window.location.origin;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
             const [usageResponse, statusResponse] = await Promise.all([
-                fetch('/api/v1/auth/usage', { headers: await this.api.getAuthHeaders() }),
-                fetch('/api/v1/subscription/status', { headers: await this.api.getAuthHeaders() })
+                fetch(`${baseURL}/api/v1/auth/usage`, { 
+                    headers: await this.api.getAuthHeaders(),
+                    signal: controller.signal
+                }),
+                fetch(`${baseURL}/api/v1/subscription/status`, { 
+                    headers: await this.api.getAuthHeaders(),
+                    signal: controller.signal
+                })
             ]);
 
-            const usage = await usageResponse.json();
-            const status = await statusResponse.json();
+            clearTimeout(timeoutId);
 
-            content.innerHTML = this.getSubscriptionModalContent(usage, status);
+            // Check if responses are JSON before parsing
+            const usageContentType = usageResponse.headers.get('content-type');
+            const statusContentType = statusResponse.headers.get('content-type');
+
+            if (usageResponse.ok && statusResponse.ok && 
+                usageContentType?.includes('application/json') &&
+                statusContentType?.includes('application/json')) {
+                
+                const usage = await usageResponse.json();
+                const status = await statusResponse.json();
+                content.innerHTML = this.getSubscriptionModalContent(usage, status);
+            } else {
+                content.innerHTML = '<div class="error">Server is currently unavailable. Please try again later.</div>';
+            }
         } catch (error) {
-            content.innerHTML = '<div class="error">Failed to load subscription details.</div>';
+            if (error.name === 'AbortError') {
+                content.innerHTML = '<div class="error">Request timed out. Please check your connection.</div>';
+            } else {
+                content.innerHTML = '<div class="error">Server is currently unavailable. Please try again later.</div>';
+            }
         }
 
         this.closeDropdown();
@@ -749,14 +818,34 @@ class UserMenu {
         content.innerHTML = '<div class="loading">Loading usage data...</div>';
 
         try {
-            const response = await fetch('/api/v1/auth/usage', {
-                headers: await this.api.getAuthHeaders()
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
+            const baseURL = window.location.origin.includes('localhost') ? 'http://localhost:5000' : window.location.origin;
+            const response = await fetch(`${baseURL}/api/v1/auth/usage`, {
+                headers: await this.api.getAuthHeaders(),
+                signal: controller.signal
             });
 
-            const usage = await response.json();
-            content.innerHTML = this.getUsageModalContent(usage);
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const usage = await response.json();
+                    content.innerHTML = this.getUsageModalContent(usage);
+                } else {
+                    content.innerHTML = '<div class="error">Server returned invalid response format.</div>';
+                }
+            } else {
+                content.innerHTML = '<div class="error">Server is currently unavailable.</div>';
+            }
         } catch (error) {
-            content.innerHTML = '<div class="error">Failed to load usage data.</div>';
+            if (error.name === 'AbortError') {
+                content.innerHTML = '<div class="error">Request timed out. Please check your connection.</div>';
+            } else {
+                content.innerHTML = '<div class="error">Server is currently unavailable. Please try again later.</div>';
+            }
         }
 
         this.closeDropdown();
@@ -810,7 +899,8 @@ class UserMenu {
 
     async manageBilling() {
         try {
-            const response = await fetch('/api/v1/subscription/billing-portal', {
+            const baseURL = window.location.origin.includes('localhost') ? 'http://localhost:5000' : window.location.origin;
+            const response = await fetch(`${baseURL}/api/v1/subscription/billing-portal`, {
                 method: 'POST',
                 headers: await this.api.getAuthHeaders(),
                 body: JSON.stringify({

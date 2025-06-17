@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const app = createApp({
     data() {
       return {
+        serverAvailable: true,  // Track server availability
         title: 'Sider AI',
         messages: [],
         currentMessage: '',
@@ -80,10 +81,32 @@ document.addEventListener('DOMContentLoaded', function() {
         lastConversationsLoadTime: 0,
         conversationsLoadInterval: 120000,  // 2 minutes in milliseconds
         _navigatingToConversation: false,  // Private flag for navigation
-        loadingMessages: false  // Loading state for messages
+        loadingMessages: false,  // Loading state for messages
+        _checkingAuth: false  // Prevent concurrent auth checks
       }
     },
     methods: {
+      async checkServerHealth() {
+        try {
+          const serverUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+          
+          const response = await fetch(`${serverUrl}/`, {
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          this.serverAvailable = response.ok;
+          return response.ok;
+        } catch (error) {
+          this.serverAvailable = false;
+          console.warn('Server health check failed:', error.message);
+          return false;
+        }
+      },
+      
       sendMessage() {
         if (!this.currentMessage.trim() || this.isTyping) return;
         
@@ -283,6 +306,13 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       
       async checkAuthStatus() {
+        // Prevent concurrent auth checks
+        if (this._checkingAuth) {
+          return;
+        }
+        
+        this._checkingAuth = true;
+        
         try {
           const auth0Service = await window.getAuth0Service();
           this.isAuthenticated = auth0Service.isAuthenticated;
@@ -300,6 +330,8 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('Auth status check failed:', error);
           this.isAuthenticated = false;
           this.user = null;
+        } finally {
+          this._checkingAuth = false;
         }
       },
 
@@ -323,6 +355,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.isAttached) {
           await this.disconnectFromChaturbate();
         } else {
+          // Check server availability first
+          const serverAvailable = await this.checkServerHealth();
+          if (!serverAvailable) {
+            this.addEvent('error', 'Cannot connect: Backend server is not available. Please ensure the server is running on port 5000.');
+            return;
+          }
           await this.attachToChaturbate();
         }
       },
@@ -342,9 +380,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
           // Create SocketIO connection to our backend
           const serverUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
-          this.websocket = window.io(`${serverUrl}/chaturbate`);
+          
+          // Add connection options with timeout and reconnection settings
+          this.websocket = window.io(`${serverUrl}/chaturbate`, {
+            timeout: 5000, // 5 second connection timeout
+            reconnection: true,
+            reconnectionAttempts: 3,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000
+          });
+          
+          // Add a connection timeout handler
+          const connectionTimeout = setTimeout(() => {
+            if (!this.isAttached) {
+              this.addEvent('error', 'Unable to connect to backend server. Please ensure the server is running.');
+              this.websocket.disconnect();
+              this.websocket = null;
+            }
+          }, 10000); // 10 second overall timeout
           
           this.websocket.on('connect', () => {
+            clearTimeout(connectionTimeout);
             this.isAttached = true;
             this.addEvent('system', 'Connected to Chaturbate');
             console.log('Connected to Chaturbate WebSocket');
@@ -377,6 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
           });
           
           this.websocket.on('disconnect', () => {
+            clearTimeout(connectionTimeout);
             this.isAttached = false;
             this.addEvent('system', 'Disconnected from Chaturbate');
             console.log('Disconnected from Chaturbate WebSocket');
@@ -384,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           this.websocket.on('connect_error', (error) => {
             console.error('WebSocket connection error:', error);
-            this.addEvent('error', 'Connection error occurred');
+            this.addEvent('error', 'Cannot connect to backend server. Please check if the server is running.');
           });
           
         } catch (error) {
@@ -651,6 +708,11 @@ document.addEventListener('DOMContentLoaded', function() {
           const days = daysMap[this.tippersTimeFilter] || 1;
           
           const serverUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+          
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
           const response = await fetch(`${serverUrl}/api/v1/influx/tippers`, {
             method: 'POST',
             headers: {
@@ -659,8 +721,11 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify({
               days: days,
               limit: 10  // Get top 10 tippers
-            })
+            }),
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (response.ok) {
             const result = await response.json();
@@ -674,7 +739,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
           }
         } catch (error) {
-          console.error('Failed to fetch tippers from InfluxDB:', error);
+          if (error.name === 'AbortError') {
+            console.warn('Tippers request timed out - server may be unavailable');
+          } else {
+            console.warn('Failed to fetch tippers - server may be offline:', error.message);
+          }
+          // Keep existing data if any, don't clear it
         }
       },
       
@@ -686,6 +756,11 @@ document.addEventListener('DOMContentLoaded', function() {
       async fetchTotalTipsFromInflux() {
         try {
           const serverUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+          
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
           const response = await fetch(`${serverUrl}/api/v1/influx/tips`, {
             method: 'POST',
             headers: {
@@ -693,8 +768,11 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
               days: 1
-            })
+            }),
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (response.ok) {
             const data = await response.json();
@@ -703,7 +781,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
           }
         } catch (error) {
-          console.error('Failed to fetch total tips from InfluxDB:', error);
+          if (error.name === 'AbortError') {
+            console.warn('Tips request timed out - server may be unavailable');
+          } else {
+            console.warn('Failed to fetch total tips - server may be offline:', error.message);
+          }
+          // Keep existing data if any
         }
       },
 
@@ -772,20 +855,32 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
 
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
           const response = await fetch('http://localhost:5000/api/v1/inbox/stats', {
             headers: {
               'Authorization': `Bearer ${token}`
-            }
+            },
+            signal: controller.signal
           });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             this.inboxStats = await response.json();
             this.inboxUnreadCount = this.inboxStats.unread_messages || 0;
           } else {
-            console.error('Failed to fetch inbox stats:', response.status, response.statusText);
+            console.warn('Inbox stats unavailable:', response.status);
           }
         } catch (error) {
-          console.error('Failed to load inbox stats:', error);
+          if (error.name === 'AbortError') {
+            console.warn('Inbox stats request timed out - server may be unavailable');
+          } else {
+            console.warn('Failed to load inbox stats - server may be offline:', error.message);
+          }
+          // Don't change the UI, keep existing state
         }
       },
 
@@ -807,11 +902,19 @@ document.addEventListener('DOMContentLoaded', function() {
           }
 
           console.log('📋 Loading conversations from API...');
+          
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
           const response = await fetch('http://localhost:5000/api/v1/inbox/conversations', {
             headers: {
               'Authorization': `Bearer ${token}`
-            }
+            },
+            signal: controller.signal
           });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             this.conversations = await response.json();
@@ -827,12 +930,16 @@ document.addEventListener('DOMContentLoaded', function() {
               });
             });
           } else {
-            console.error('Failed to fetch conversations:', response.status, response.statusText);
-            this.conversations = [];
+            console.warn('Conversations unavailable:', response.status);
+            // Keep existing conversations if any
           }
         } catch (error) {
-          console.error('Failed to load conversations:', error);
-          this.conversations = [];
+          if (error.name === 'AbortError') {
+            console.warn('Conversations request timed out - server may be unavailable');
+          } else {
+            console.warn('Failed to load conversations - server may be offline:', error.message);
+          }
+          // Keep existing conversations if any, don't clear them
         }
       },
 
@@ -992,11 +1099,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
           }
 
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
           const response = await fetch(`http://localhost:5000/api/v1/user_stats/${username}?days=30`, {
             headers: {
               'Authorization': `Bearer ${token}`
-            }
+            },
+            signal: controller.signal
           });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             const stats = await response.json();
@@ -1007,11 +1121,15 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             return stats;
           } else {
-            console.error('Failed to fetch user stats:', response.status, response.statusText);
+            console.warn('User stats unavailable:', response.status);
             return null;
           }
         } catch (error) {
-          console.error('Error fetching user stats:', error);
+          if (error.name === 'AbortError') {
+            console.warn('User stats request timed out - server may be unavailable');
+          } else {
+            console.warn('Failed to fetch user stats - server may be offline:', error.message);
+          }
           return null;
         } finally {
           this.userStatsLoading.delete(username);
@@ -1377,8 +1495,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // Check auth status after component mounts
       await this.checkAuthStatus();
       
-      // Refresh user menu to sync authentication state
-      if (window.userMenu) {
+      // Refresh user menu to sync authentication state only if authenticated
+      if (window.userMenu && this.isAuthenticated) {
         await window.userMenu.refresh();
       }
       

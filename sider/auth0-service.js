@@ -27,6 +27,12 @@ class Auth0Service {
   
   async _doInit() {
     try {
+      // Prevent multiple initializations
+      if (this.initialized) {
+        console.log('Auth0 already initialized, skipping...');
+        return;
+      }
+      
       // Check if Auth0 SDK is loaded
       if (typeof auth0 === 'undefined' || !auth0.createAuth0Client) {
         throw new Error('Auth0 SDK not loaded. Make sure to include the Auth0 SPA SDK script.');
@@ -49,10 +55,17 @@ class Auth0Service {
       
       console.log('Auth0 client initialized successfully');
       
-      // Handle redirect callback first
-      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
+      // Handle redirect callback first - but only if we haven't already processed it
+      const isCallbackUrl = window.location.search.includes("code=") && window.location.search.includes("state=");
+      const hasProcessedCallback = sessionStorage.getItem('auth0_callback_processed') === 'true';
+      
+      if (isCallbackUrl && !hasProcessedCallback) {
         console.log('Handling redirect callback...');
+        sessionStorage.setItem('auth0_callback_processed', 'true');
         await this.handleRedirectCallback();
+      } else if (!isCallbackUrl && hasProcessedCallback) {
+        // Clear the flag when we're no longer on a callback URL
+        sessionStorage.removeItem('auth0_callback_processed');
       }
       
       // Check if user is authenticated
