@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to specifically query tip data"""
 
-import os
 
 from dotenv import load_dotenv
 

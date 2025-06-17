@@ -1,6 +1,5 @@
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict
 
 from flask import request
 from flask_restx import Namespace, Resource, fields
@@ -22,9 +21,13 @@ user_stats_model = api.model(
         "total_tip_amount": fields.Integer(description="Total tokens tipped"),
         "last_message_time": fields.String(description="Last message timestamp"),
         "total_messages": fields.Integer(description="Total number of messages"),
-        "user_status": fields.String(description="User status (Regular, Premium, etc.)"),
+        "user_status": fields.String(
+            description="User status (Regular, Premium, etc.)"
+        ),
         "first_seen": fields.String(description="First time user was seen"),
-        "days_active": fields.Integer(description="Number of days user has been active"),
+        "days_active": fields.Integer(
+            description="Number of days user has been active"
+        ),
     },
 )
 
@@ -52,10 +55,10 @@ class UserStatsService:
 
             # Query for tip statistics
             tip_stats = self._get_tip_stats(username, days)
-            
+
             # Query for message statistics
             message_stats = self._get_message_stats(username, days)
-            
+
             # Query for user activity timeline
             activity_stats = self._get_activity_stats(username, days)
 
@@ -69,7 +72,9 @@ class UserStatsService:
                 "total_messages": message_stats.get("total_messages", 0),
                 "first_seen": activity_stats.get("first_seen"),
                 "days_active": activity_stats.get("days_active", 0),
-                "user_status": self._determine_user_status(tip_stats.get("total_tip_amount", 0)),
+                "user_status": self._determine_user_status(
+                    tip_stats.get("total_tip_amount", 0)
+                ),
             }
 
             logger.info(f"Retrieved stats for {username}: {user_stats}")
@@ -112,10 +117,7 @@ class UserStatsService:
             for table in result:
                 for record in table.records:
                     tip_amount = record.get_value() or 0
-                    tips.append({
-                        "time": record.get_time(),
-                        "amount": tip_amount
-                    })
+                    tips.append({"time": record.get_time(), "amount": tip_amount})
                     total_amount += tip_amount
 
             return {
@@ -149,14 +151,15 @@ class UserStatsService:
             messages = []
             for table in result:
                 for record in table.records:
-                    messages.append({
-                        "time": record.get_time(),
-                        "message": record.get_value()
-                    })
+                    messages.append(
+                        {"time": record.get_time(), "message": record.get_value()}
+                    )
 
             return {
                 "total_messages": len(messages),
-                "last_message_time": messages[0]["time"].isoformat() if messages else None,
+                "last_message_time": messages[0]["time"].isoformat()
+                if messages
+                else None,
             }
 
         except Exception as e:
@@ -167,7 +170,7 @@ class UserStatsService:
         """Get general activity statistics for a user."""
         try:
             times = []
-            
+
             # Query for tip activity times
             tip_query = f"""
                 from(bucket: "{self.influx_client.bucket}")
@@ -244,10 +247,10 @@ class UserStatsResource(Resource):
         """Get comprehensive statistics for a specific user."""
         try:
             days = request.args.get("days", 30, type=int)
-            
+
             user_stats_service = UserStatsService()
             stats = user_stats_service.get_user_stats(username, days)
-            
+
             return stats
 
         except Exception as e:
@@ -258,9 +261,16 @@ class UserStatsResource(Resource):
 @api.route("/bulk")
 class BulkUserStatsResource(Resource):
     @api.doc("get_bulk_user_stats")
-    @api.expect(api.model("UserList", {
-        "usernames": fields.List(fields.String, required=True, description="List of usernames")
-    }))
+    @api.expect(
+        api.model(
+            "UserList",
+            {
+                "usernames": fields.List(
+                    fields.String, required=True, description="List of usernames"
+                )
+            },
+        )
+    )
     @api.marshal_list_with(user_stats_model)
     @requires_auth
     def post(self):
@@ -269,17 +279,17 @@ class BulkUserStatsResource(Resource):
             data = request.get_json()
             usernames = data.get("usernames", [])
             days = data.get("days", 30)
-            
+
             if not usernames:
                 api.abort(400, "No usernames provided")
-            
+
             user_stats_service = UserStatsService()
             stats_list = []
-            
+
             for username in usernames:
                 stats = user_stats_service.get_user_stats(username, days)
                 stats_list.append(stats)
-            
+
             return stats_list
 
         except Exception as e:

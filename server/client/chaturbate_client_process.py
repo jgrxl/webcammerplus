@@ -3,7 +3,7 @@ import logging
 import os
 import signal
 from contextlib import asynccontextmanager
-from typing import Any, Callable, Dict, Optional
+from typing import Callable, Dict, Optional
 
 from chaturbate_poller.chaturbate_client import ChaturbateClient  # type: ignore
 

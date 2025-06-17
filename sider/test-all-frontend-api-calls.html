@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Frontend-Backend API Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Complete Frontend-Backend API Integration Test</h1>
+        <p class="mb-4 text-gray-600">Testing ALL API calls that the frontend makes to the backend</p>
+        
+        <div id="summary" class="mb-8 p-4 bg-blue-100 rounded hidden">
+            <h2 class="text-xl font-semibold mb-2">Test Summary</h2>
+            <div id="summaryContent"></div>
+        </div>
+        
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        // Import the API service
+        const script = document.createElement('script');
+        script.src = './novita-api.js';
+        document.head.appendChild(script);
+
+        script.onload = async () => {
+            const results = document.getElementById('results');
+            const testResults = [];
+            
+            function addResult(category, title, success, details) {
+                const div = document.createElement('div');
+                div.className = `p-4 rounded ${success ? 'bg-green-100 border-green-500' : 'bg-red-100 border-red-500'} border`;
+                div.innerHTML = `
+                    <h3 class="font-semibold ${success ? 'text-green-800' : 'text-red-800'}">${success ? '✅' : '❌'} [${category}] ${title}</h3>
+                    <pre class="text-sm mt-2 overflow-x-auto bg-white p-2 rounded">${JSON.stringify(details, null, 2)}</pre>
+                `;
+                results.appendChild(div);
+                testResults.push({ category, title, success });
+            }
+
+            function showSummary() {
+                const summary = document.getElementById('summary');
+                const summaryContent = document.getElementById('summaryContent');
+                
+                const total = testResults.length;
+                const passed = testResults.filter(r => r.success).length;
+                const failed = testResults.filter(r => !r.success).length;
+                
+                const categories = {};
+                testResults.forEach(r => {
+                    if (!categories[r.category]) {
+                        categories[r.category] = { passed: 0, failed: 0 };
+                    }
+                    categories[r.category][r.success ? 'passed' : 'failed']++;
+                });
+                
+                let summaryHTML = `
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">${total}</div>
+                            <div class="text-gray-600">Total Tests</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">${passed}</div>
+                            <div class="text-gray-600">Passed</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-red-600">${failed}</div>
+                            <div class="text-gray-600">Failed</div>
+                        </div>
+                    </div>
+                    <div class="border-t pt-4">
+                        <h3 class="font-semibold mb-2">By Category:</h3>
+                        <div class="space-y-1">
+                `;
+                
+                Object.entries(categories).forEach(([cat, stats]) => {
+                    summaryHTML += `
+                        <div class="flex justify-between">
+                            <span>${cat}:</span>
+                            <span class="text-green-600">${stats.passed} passed</span>
+                            ${stats.failed > 0 ? `<span class="text-red-600">${stats.failed} failed</span>` : ''}
+                        </div>
+                    `;
+                });
+                
+                summaryHTML += '</div></div>';
+                summaryContent.innerHTML = summaryHTML;
+                summary.classList.remove('hidden');
+            }
+
+            // ==== TEST SUITE ====
+            
+            // 1. API Service Methods (from novita-api.js)
+            const api = new WebCammerAPI();
+            
+            // Test health check
+            try {
+                const health = await api.healthCheck();
+                addResult('API Service', 'Health Check (via API service)', health, { 
+                    status: health ? 'Backend is accessible' : 'Backend not accessible',
+                    result: health
+                });
+            } catch (error) {
+                addResult('API Service', 'Health Check (via API service)', false, { error: error.message });
+            }
+
+            // Test translate (requires auth - should fail)
+            try {
+                await api.translate('Hello', 'es');
+                addResult('API Service', 'Translate Method', false, { error: 'Should have failed without auth' });
+            } catch (error) {
+                addResult('API Service', 'Translate Method', true, { 
+                    expected: 'Should fail without auth',
+                    actual: error.message 
+                });
+            }
+
+            // Test generateReply (requires auth - should fail)
+            try {
+                await api.generateReply('How are you?', 'Fine', 'friendly', 'en');
+                addResult('API Service', 'Generate Reply Method', false, { error: 'Should have failed without auth' });
+            } catch (error) {
+                addResult('API Service', 'Generate Reply Method', true, { 
+                    expected: 'Should fail without auth',
+                    actual: error.message 
+                });
+            }
+
+            // Test write (requires auth - should fail)
+            try {
+                await api.write('casual', 'Hello world', 'en');
+                addResult('API Service', 'Write Method', false, { error: 'Should have failed without auth' });
+            } catch (error) {
+                addResult('API Service', 'Write Method', true, { 
+                    expected: 'Should fail without auth',
+                    actual: error.message 
+                });
+            }
+
+            // Test InfluxDB methods
+            try {
+                const tips = await api.getTips(7);
+                addResult('API Service', 'Get Tips Method', true, tips);
+            } catch (error) {
+                addResult('API Service', 'Get Tips Method', false, { error: error.message });
+            }
+
+            try {
+                const topChatters = await api.getTopChatters(7, 10);
+                addResult('API Service', 'Get Top Chatters Method', true, topChatters);
+            } catch (error) {
+                addResult('API Service', 'Get Top Chatters Method', false, { error: error.message });
+            }
+
+            // 2. Direct API Calls (from popup.js)
+            const baseUrl = 'http://localhost:5000';
+            
+            // Test pricing endpoint
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/auth/pricing`);
+                const pricing = await response.json();
+                addResult('Direct API', 'Pricing Endpoint', response.ok, pricing);
+            } catch (error) {
+                addResult('Direct API', 'Pricing Endpoint', false, { error: error.message });
+            }
+
+            // Test InfluxDB tippers endpoint (used in popup.js)
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/influx/tippers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ broadcaster: 'testuser', days: 7, limit: 10 })
+                });
+                const tippers = await response.json();
+                addResult('Direct API', 'InfluxDB Tippers', response.ok, tippers);
+            } catch (error) {
+                addResult('Direct API', 'InfluxDB Tippers', false, { error: error.message });
+            }
+
+            // Test InfluxDB tips endpoint (used in popup.js)
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/influx/tips`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ broadcaster: 'testuser', days: 7 })
+                });
+                const tips = await response.json();
+                addResult('Direct API', 'InfluxDB Tips', response.ok, tips);
+            } catch (error) {
+                addResult('Direct API', 'InfluxDB Tips', false, { error: error.message });
+            }
+
+            // Test inbox stats endpoint (used in popup.js)
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/inbox/stats`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const stats = await response.json();
+                addResult('Direct API', 'Inbox Stats', response.ok || response.status === 401, {
+                    status: response.status,
+                    data: stats,
+                    note: '401 is expected without auth'
+                });
+            } catch (error) {
+                addResult('Direct API', 'Inbox Stats', false, { error: error.message });
+            }
+
+            // Test inbox conversations endpoint (used in popup.js)
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/inbox/conversations`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const conversations = await response.json();
+                addResult('Direct API', 'Inbox Conversations', response.ok || response.status === 401, {
+                    status: response.status,
+                    data: conversations,
+                    note: '401 is expected without auth'
+                });
+            } catch (error) {
+                addResult('Direct API', 'Inbox Conversations', false, { error: error.message });
+            }
+
+            // Test user stats endpoint (used in popup.js)
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/user_stats/testuser?days=30`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const userStats = await response.json();
+                addResult('Direct API', 'User Stats', response.ok || response.status === 401, {
+                    status: response.status,
+                    data: userStats,
+                    note: '401 is expected without auth'
+                });
+            } catch (error) {
+                addResult('Direct API', 'User Stats', false, { error: error.message });
+            }
+
+            // 3. Chaturbate endpoints
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/chaturbate/status`);
+                const status = await response.json();
+                addResult('Chaturbate', 'Status Endpoint', response.ok, status);
+            } catch (error) {
+                addResult('Chaturbate', 'Status Endpoint', false, { error: error.message });
+            }
+
+            // Test start chaturbate (demo mode)
+            try {
+                const response = await fetch(`${baseUrl}/api/v1/chaturbate/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ demo_mode: true })
+                });
+                const result = await response.json();
+                addResult('Chaturbate', 'Start Demo Mode', response.ok, result);
+            } catch (error) {
+                addResult('Chaturbate', 'Start Demo Mode', false, { error: error.message });
+            }
+
+            // 4. WebSocket Connection Test
+            try {
+                // Load Socket.IO client
+                const script = document.createElement('script');
+                script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+                document.head.appendChild(script);
+                
+                await new Promise((resolve) => {
+                    script.onload = resolve;
+                });
+                
+                // Now test Socket.IO connection
+                const socket = io('http://localhost:5000', {
+                    transports: ['websocket'],
+                    reconnection: false
+                });
+                
+                await new Promise((resolve, reject) => {
+                    socket.on('connect', () => {
+                        addResult('WebSocket', 'Connection Test', true, { 
+                            status: 'Connected successfully',
+                            transport: socket.io.engine.transport.name,
+                            id: socket.id
+                        });
+                        socket.disconnect();
+                        resolve();
+                    });
+                    
+                    socket.on('connect_error', (error) => {
+                        reject(new Error(`Connection error: ${error.message}`));
+                    });
+                    
+                    setTimeout(() => {
+                        socket.disconnect();
+                        reject(new Error('Connection timeout'));
+                    }, 5000);
+                });
+            } catch (error) {
+                addResult('WebSocket', 'Connection Test', false, { error: error.message });
+            }
+
+            // 5. API v1 Health Check
+            try {
+                const response = await fetch(`${baseUrl}/api/v1`);
+                const health = await response.json();
+                addResult('Health', 'API v1 Health Check', response.ok, health);
+            } catch (error) {
+                addResult('Health', 'API v1 Health Check', false, { error: error.message });
+            }
+
+            // Show summary
+            showSummary();
+        };
+    </script>
+</body>
+</html>

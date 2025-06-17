@@ -1,100 +1,112 @@
 # pylint: disable=R0801
-import os
+import logging
+import re
 from typing import Optional
 
-import requests
+from .base_ai_client import BaseAIService, NovitaAIClient
 
-# Novita API Configuration
-NOVITA_API_KEY = os.getenv("NOVITA_API_KEY")
-NOVITA_BASE_URL = "https://api.novita.ai"
-NOVITA_MODEL = "meta-llama/llama-3.2-3b-instruct"
+logger = logging.getLogger(__name__)
 
 
+class TranslateService(BaseAIService):
+    """Service for translating text using AI."""
+
+    def __init__(self, client: Optional[NovitaAIClient] = None):
+        super().__init__(client)
+        # Override model for translation tasks
+        self.client.default_params["model"] = "meta-llama/llama-3.2-3b-instruct"
+
+    def get_system_prompt(self) -> str:
+        """Default system prompt for translation."""
+        return "You are a professional translator. Provide only the direct translation without any explanations or additional text."
+
+    def get_default_temperature(self) -> float:
+        """Use lower temperature for more accurate translations."""
+        return 0.3
+
+    def translate_text(
+        self,
+        text: str,
+        to_lang: str,
+        from_lang: Optional[str] = None,
+    ) -> str:
+        """
+        Use Novita AI API to translate `text` into `to_lang`.
+
+        Args:
+            text: Text to translate
+            to_lang: Target language
+            from_lang: Source language (optional)
+
+        Returns:
+            Translated text
+
+        Raises:
+            ValueError: If translation fails
+        """
+        prompt = self._build_prompt_translate(text, to_lang, from_lang)
+
+        try:
+            translation = self.process_request(user_content=prompt, max_tokens=500)
+
+            # Clean up the response
+            translation = self._clean_translation_response(translation)
+
+            logger.info(f"Translation successful: {text[:50]}... -> {to_lang}")
+            return translation
+
+        except Exception as e:
+            logger.error(f"Translation failed: {str(e)}")
+            raise ValueError(f"Translation failed: {str(e)}")
+
+    def _build_prompt_translate(
+        self,
+        text: str,
+        to_lang: str,
+        from_lang: Optional[str] = None,
+    ) -> str:
+        """Build the translation prompt."""
+        prompt = f"Translate the following text to {to_lang}"
+        if from_lang:
+            prompt += f" from {from_lang}"
+        prompt += f": {text}"
+        return prompt
+
+    def _clean_translation_response(self, translation: str) -> str:
+        """Clean up AI response to extract just the translation."""
+        translation = translation.strip()
+
+        # Remove thinking tags if present
+        if "<think>" in translation and "</think>" in translation:
+            parts = translation.split("</think>")
+            if len(parts) > 1:
+                translation = parts[1].strip()
+
+        # Handle Llama-style verbose responses
+        if "translation" in translation.lower() and "is" in translation.lower():
+            # Try to extract the actual translation from verbose responses
+            # Pattern to match: The translation... is "..."
+            quote_match = re.search(r'"([^"]+)"', translation)
+            if quote_match:
+                translation = quote_match.group(1)
+            else:
+                # Pattern to match: is [translation]
+                is_match = re.search(r"\bis\s+(.+?)\.?$", translation, re.IGNORECASE)
+                if is_match:
+                    translation = is_match.group(1).strip(' ."')
+
+        return translation
+
+
+# Legacy function for backward compatibility
 def translate_text(
     text: str,
     to_lang: str,
     from_lang: Optional[str] = None,
 ) -> str:
     """
-    Use Novita AI API to translate `text` into `to_lang`.
+    Legacy function for backward compatibility.
+    Use TranslateService class directly for new code.
     """
-    prompt = _build_prompt_translate(text, to_lang, from_lang)
-
-    url = f"{NOVITA_BASE_URL}/v3/openai/chat/completions"
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {NOVITA_API_KEY}",
-    }
-
-    request_body = {
-        "model": NOVITA_MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 500,
-        "temperature": 0.3,
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=request_body, timeout=30)
-
-        if not response.ok:
-            error_details = ""
-            try:
-                error_data = response.json()
-                error_details = error_data.get("error", {}).get(
-                    "message", str(error_data)
-                )
-            except Exception:
-                error_details = response.text
-            raise ValueError(
-                f"Novita API request failed: {response.status_code} - {error_details}"
-            )
-
-        data = response.json()
-
-        if data.get("choices") and data["choices"][0].get("message"):
-            translation = data["choices"][0]["message"]["content"].strip()
-
-            # Clean up the response - remove thinking tags if present
-            if "<think>" in translation and "</think>" in translation:
-                # Extract text after the thinking section
-                parts = translation.split("</think>")
-                if len(parts) > 1:
-                    translation = parts[1].strip()
-
-            # Handle Llama-style verbose responses
-            # Look for common patterns like "The translation of ... is ..."
-            if "translation" in translation.lower() and "is" in translation.lower():
-                # Try to extract the actual translation from verbose responses
-                import re
-
-                # Pattern to match: The translation... is "..."
-                quote_match = re.search(r'"([^"]+)"', translation)
-                if quote_match:
-                    translation = quote_match.group(1)
-                else:
-                    # Pattern to match: is [translation]
-                    is_match = re.search(
-                        r"\bis\s+(.+?)\.?$", translation, re.IGNORECASE
-                    )
-                    if is_match:
-                        translation = is_match.group(1).strip(' ."')
-
-            return translation
-        else:
-            raise ValueError("Unexpected API response format")
-
-    except requests.exceptions.RequestException as e:
-        raise ValueError(f"Network error calling Novita API: {str(e)}")
-
-
-def _build_prompt_translate(
-    text: str,
-    to_lang: str,
-    from_lang: Optional[str] = None,
-) -> str:
-    prompt = f"Translate the following text to {to_lang}"
-    if from_lang:
-        prompt += f" from {from_lang}"
-    prompt += f": {text}"
-    return prompt
+    service = TranslateService()
+    return service.translate_text(text, to_lang, from_lang)

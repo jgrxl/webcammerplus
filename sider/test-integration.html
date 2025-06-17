@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend-Backend Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Frontend-Backend Integration Test</h1>
+        
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        // Import the API service
+        const script = document.createElement('script');
+        script.src = './novita-api.js';
+        document.head.appendChild(script);
+
+        script.onload = async () => {
+            const api = new WebCammerAPI();
+            const results = document.getElementById('results');
+
+            function addResult(title, success, details) {
+                const div = document.createElement('div');
+                div.className = `p-4 rounded ${success ? 'bg-green-100 border-green-500' : 'bg-red-100 border-red-500'} border`;
+                div.innerHTML = `
+                    <h3 class="font-semibold ${success ? 'text-green-800' : 'text-red-800'}">${success ? '✅' : '❌'} ${title}</h3>
+                    <pre class="text-sm mt-2 overflow-x-auto">${JSON.stringify(details, null, 2)}</pre>
+                `;
+                results.appendChild(div);
+            }
+
+            // Test 1: Health Check
+            try {
+                const health = await api.healthCheck();
+                addResult('Health Check', health, { status: 'Backend is accessible' });
+            } catch (error) {
+                addResult('Health Check', false, { error: error.message });
+            }
+
+            // Test 2: Get Pricing (Public Endpoint)
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/auth/pricing');
+                const pricing = await response.json();
+                addResult('Pricing Endpoint', response.ok, pricing);
+            } catch (error) {
+                addResult('Pricing Endpoint', false, { error: error.message });
+            }
+
+            // Test 3: InfluxDB Tips (Public Endpoint)
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/influx/tips', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ broadcaster: 'testuser', days: 7 })
+                });
+                const tips = await response.json();
+                addResult('InfluxDB Tips', response.ok, tips);
+            } catch (error) {
+                addResult('InfluxDB Tips', false, { error: error.message });
+            }
+
+            // Test 4: Chaturbate Status
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/chaturbate/status');
+                const status = await response.json();
+                addResult('Chaturbate Status', response.ok, status);
+            } catch (error) {
+                addResult('Chaturbate Status', false, { error: error.message });
+            }
+
+            // Test 5: Translation (Auth Required - Should Fail)
+            try {
+                const translated = await api.translateText('Hello', 'es');
+                addResult('Translation (Auth Required)', false, { error: 'Should have failed without auth' });
+            } catch (error) {
+                addResult('Translation (Auth Required)', true, { 
+                    expected: 'Should fail without valid auth',
+                    actual: error.message 
+                });
+            }
+
+            // Test 6: WebSocket Connection
+            try {
+                const socket = new WebSocket('ws://localhost:5000/socket.io/?transport=websocket');
+                
+                await new Promise((resolve, reject) => {
+                    socket.onopen = () => {
+                        addResult('WebSocket Connection', true, { status: 'Connected' });
+                        socket.close();
+                        resolve();
+                    };
+                    socket.onerror = (error) => {
+                        reject(error);
+                    };
+                    setTimeout(() => reject(new Error('Connection timeout')), 5000);
+                });
+            } catch (error) {
+                addResult('WebSocket Connection', false, { error: error.message });
+            }
+        };
+    </script>
+</body>
+</html>

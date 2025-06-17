@@ -1,20 +1,19 @@
 import asyncio
-import json
 import logging
-import os
 import random
 import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Optional, Set
+from typing import Optional, Set
 
 from flask import request
 from flask_restx import Namespace, Resource
-from flask_socketio import SocketIO, disconnect, emit
-from influxdb_client import Point
+from flask_socketio import SocketIO, emit
 
-from client.influx_client import InfluxDBClient
+from core.dependencies import get_dependency, get_event_repository
+from services.chaturbate_event_service import EventProcessingService
+from services.demo_event_service import DemoEventService
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +23,8 @@ api = Namespace("chaturbate", description="Chaturbate WebSocket operations")
 connected_clients: Set[str] = set()
 demo_client_running: bool = False
 socketio: Optional[SocketIO] = None
+demo_service: Optional[DemoEventService] = None
+demo_task: Optional[asyncio.Task] = None
 
 
 # Create mock objects that match the chaturbate_poller structure
@@ -68,125 +69,43 @@ logger.info("Using real ChaturbateClientEventHandler with chaturbate_poller mode
 
 
 class WebSocketEventHandler(ChaturbateClientEventHandler):
-    """Event handler that forwards processed events to WebSocket clients and stores them in InfluxDB."""
+    """Event handler that uses EventProcessingService for storage and broadcasting."""
 
     def __init__(self, socket_io: SocketIO):
         super().__init__(enable_logging=True)
         self.socketio = socket_io
-        self.influx_client = None
-        self._init_influx_client()
-
-    def _init_influx_client(self):
-        """Initialize InfluxDB client if environment variables are set."""
-        try:
-            self.influx_client = InfluxDBClient()
-            logger.info("InfluxDB client initialized successfully")
-        except Exception as e:
-            logger.warning(f"Failed to initialize InfluxDB client: {e}")
-            self.influx_client = None
-
-    def _write_to_influx(self, point: Point):
-        """Write a point to InfluxDB if client is available."""
-        if self.influx_client:
-            try:
-                write_api = self.influx_client.write_api
-                write_api.write(
-                    bucket=self.influx_client.bucket,
-                    org=self.influx_client.org,
-                    record=point,
-                )
-                logger.info(
-                    f"Successfully wrote event to InfluxDB: {point._name} for user: {point._tags.get('username', 'unknown')}"
-                )
-            except Exception as e:
-                logger.error(f"Failed to write to InfluxDB: {e}")
+        self.event_service = get_dependency(EventProcessingService)
+        self.event_service.set_socketio(socket_io)
+        
+        # Set event repository if available
+        event_repo = get_event_repository()
+        if event_repo:
+            self.event_service.set_event_repository(event_repo)
+            logger.info("Event repository configured for WebSocketEventHandler")
         else:
-            logger.warning("InfluxDB client not available - skipping write")
+            logger.warning("No event repository available - events won't be persisted")
 
     async def handle_tip(self, event) -> None:
-        """Handle tip events, write to InfluxDB, and forward to WebSocket."""
+        """Handle tip events using EventProcessingService."""
         try:
             # Process with parent handler first
             await super().handle_tip(event)
-
-            if event and event.object and event.object.user and event.object.tip:
-                username = event.object.user.username or "Anonymous"
-                amount = event.object.tip.tokens or 0
-                message = (
-                    getattr(event.object.tip, "message", "")
-                    or event.object.message
-                    or ""
-                )
-
-                # Write to InfluxDB
-                point = (
-                    Point("chaturbate_events")
-                    .tag("method", "tip")
-                    .tag("username", username)
-                    .field("object.tip.tokens", amount)
-                    .field("object.user.username", username)
-                    .field("object.tip.message", message)
-                    .time(event.timestamp)
-                )
-
-                self._write_to_influx(point)
-
-                data = {
-                    "type": "tip",
-                    "username": username,
-                    "amount": amount,
-                    "message": message,
-                    "timestamp": event.timestamp.timestamp(),
-                }
-
-                self.socketio.emit("chaturbate_event", data, namespace="/chaturbate")
-                logger.info(
-                    f"Processed tip event to InfluxDB and WebSocket: {username} tipped {amount} tokens"
-                )
-
+            
+            # Use event service for storage and broadcasting
+            await self.event_service.process_and_store_event(event, "tip")
+            
         except Exception as e:
             logger.error(f"Error handling tip event: {e}")
 
     async def handle_chat(self, event) -> None:
-        """Handle chat events, write to InfluxDB, and forward to WebSocket."""
+        """Handle chat events using EventProcessingService."""
         try:
             # Process with parent handler first
             await super().handle_chat(event)
-
-            if event and event.object and event.object.user:
-                username = event.object.user.username or "Anonymous"
-                message = event.object.message or ""
-
-                # Determine if this is a system message
-                method = "system" if username == "System" else "chatMessage"
-
-                # Write to InfluxDB
-                point = (
-                    Point("chaturbate_events")
-                    .tag("method", method)
-                    .tag("username", username)
-                    .field("object.user.username", username)
-                    .field("object.message", message)
-                    .time(event.timestamp)
-                )
-
-                self._write_to_influx(point)
-
-                # Use appropriate type for WebSocket event
-                event_type = "system" if username == "System" else "chat"
-                
-                data = {
-                    "type": event_type,
-                    "username": username,
-                    "message": message,
-                    "timestamp": event.timestamp.timestamp(),
-                }
-
-                self.socketio.emit("chaturbate_event", data, namespace="/chaturbate")
-                logger.debug(
-                    f"Processed chat event to InfluxDB and WebSocket: {username}: {message[:50]}..."
-                )
-
+            
+            # Use event service for storage and broadcasting
+            await self.event_service.process_and_store_event(event, "chat")
+            
         except Exception as e:
             logger.error(f"Error handling chat event: {e}")
 
@@ -210,239 +129,31 @@ class WebSocketEventHandler(ChaturbateClientEventHandler):
             logger.error(f"Error handling message event: {e}")
 
     async def handle_private_message(self, event) -> None:
-        """Handle private message events, write to InfluxDB, and forward to WebSocket."""
+        """Handle private message events using EventProcessingService."""
         try:
             # Process with parent handler first
             await super().handle_private_message(event)
-
-            if event and event.object and event.object.user:
-                from_username = event.object.user.username or "Anonymous"
-                message = event.object.message or ""
-
-                # For private messages, we need to determine the recipient
-                # In a real implementation, this would come from the event data
-                # For demo purposes, we'll use the actual logged-in user's ID
-                to_username = "google-oauth2|101763761877997490084"
-                
-                logger.info(f"🔒 Processing private message: {from_username} -> {to_username}: {message}")
-
-                # Write to InfluxDB with specific tags for private messages
-                point = (
-                    Point("chaturbate_events")
-                    .tag("method", "privateMessage")
-                    .tag("from_user", from_username)
-                    .tag("to_user", to_username)
-                    .tag("is_read", "false")
-                    .field("object.user.username", from_username)
-                    .field("object.message", message)
-                    .field("from_user", from_username)
-                    .field("to_user", to_username)
-                    .time(event.timestamp)
-                )
-
-                self._write_to_influx(point)
-                logger.info(f"✅ Wrote private message to InfluxDB")
-
-                data = {
-                    "type": "private_message",
-                    "from_username": from_username,
-                    "to_username": to_username,
-                    "message": message,
-                    "timestamp": event.timestamp.timestamp(),
-                    "is_read": False,
-                }
-
-                # Emit to specific user namespace or broadcast for now
-                self.socketio.emit("private_message", data, namespace="/chaturbate")
-                logger.info(
-                    f"✅ Emitted private message to WebSocket: {from_username} -> {to_username}"
-                )
+            
+            # Use event service for storage and broadcasting
+            await self.event_service.process_and_store_event(event, "private_message")
 
         except Exception as e:
             logger.error(f"Error handling private message event: {e}")
 
 
-class DemoEventGenerator:
-    """Demo event generator that creates proper event objects and processes them through the event handler."""
-
-    def __init__(self, event_handler: WebSocketEventHandler):
-        self.event_handler = event_handler
-        self.running = False
-        self.last_private_message_time = time.time()
-        self.private_message_interval = 120  # 2 minutes in seconds
-
-    def start(self):
-        """Start generating demo events."""
-        if self.running:
-            return
-
-        self.running = True
-        logger.info("Starting demo event generator with real event handler processing")
-
-        def generate_events():
-            while self.running and connected_clients:
-                try:
-                    # Generate random events and process them through the event handler
-                    # 70% tips, 29% chat, 1% private messages (less frequent)
-                    event_type = random.choices(
-                        ["tip", "chat", "private_message"], weights=[70, 29, 1], k=1
-                    )[0]
-
-                    if event_type == "tip":
-                        # Create a proper tip event object matching real Chaturbate structure
-                        # Use consistent usernames with different tip patterns
-                        tipper_profiles = [
-                            ("WhaleKing", [100, 200, 500, 1000]),  # Big spender
-                            ("DiamondHands", [50, 100, 200, 500]),  # Generous regular
-                            ("LoyalFan", [25, 50, 100, 100]),  # Consistent tipper
-                            ("NewSupporter", [10, 25, 50]),  # New supporter
-                            ("RandomTipper", [5, 10, 25, 50]),  # Occasional tipper
-                            ("BigSpender2024", [200, 500, 1000]),  # VIP
-                            ("GenerousViewer", [100, 150, 200]),  # Premium supporter
-                        ]
-
-                        # Pick a tipper profile
-                        username, amounts = random.choice(tipper_profiles)
-                        user = MockUser(username=username)
-                        amount = random.choice(amounts)
-                        tip_message = random.choice(
-                            [
-                                "Thanks!",
-                                "Great show!",
-                                "Keep it up!",
-                                "You're amazing!",
-                                "Love the stream!",
-                                "",
-                            ]
-                        )
-
-                        tip = MockTip(tokens=amount, message=tip_message)
-                        tip_object = MockTipObject(
-                            user=user, tip=tip, message=tip_message
-                        )
-                        event = MockEvent(object=tip_object)
-
-                        # Process through the real event handler
-                        self._run_async_handler(self.event_handler.handle_tip(event))
-
-                    elif event_type == "chat":
-                        # Create a proper chat event object
-                        # Mix of tippers and regular chatters
-                        chat_users = [
-                            "WhaleKing",
-                            "DiamondHands",
-                            "LoyalFan",
-                            "NewSupporter",
-                            "ChatUser1",
-                            "Viewer2",
-                            "RegularFan",
-                            "QuietViewer",
-                            "BigSpender2024",
-                            "GenerousViewer",
-                        ]
-                        user = MockUser(username=random.choice(chat_users))
-                        chat_message = random.choice(
-                            [
-                                "Hello!",
-                                "How are you?",
-                                "Great stream!",
-                                "What time is it?",
-                                "You look amazing!",
-                                "😍",
-                                "Thanks for the show!",
-                                "Keep up the good work!",
-                                "When is the next stream?",
-                                "Love your content!",
-                            ]
-                        )
-
-                        chat_object = MockChatObject(user=user, message=chat_message)
-                        event = MockEvent(object=chat_object, timestamp=datetime.now())
-
-                        # Process through the real event handler
-                        self._run_async_handler(self.event_handler.handle_chat(event))
-
-                    elif event_type == "private_message":
-                        # Create a proper private message event object
-                        pm_senders = [
-                            "SecretAdmirer",
-                            "VIPFan",
-                            "WhaleKing",
-                            "DiamondHands",
-                            "MysteryUser",
-                            "PrivateSupporter",
-                            "SilentFan",
-                            "AnonymousViewer",
-                        ]
-                        user = MockUser(username=random.choice(pm_senders))
-                        private_messages = [
-                            "Hey, can we chat privately?",
-                            "I love your shows! ❤️",
-                            "Are you available for a private show?",
-                            "Thanks for the amazing content!",
-                            "Just wanted to say hi privately 😊",
-                            "You're incredible!",
-                            "Can I request something special?",
-                            "Hope you're having a great day!",
-                            "Would love to support you more",
-                            "Your last show was amazing!",
-                        ]
-
-                        chat_object = MockChatObject(
-                            user=user, message=random.choice(private_messages)
-                        )
-                        event = MockEvent(object=chat_object, timestamp=datetime.now())
-
-                        # Process through the real event handler
-                        self._run_async_handler(
-                            self.event_handler.handle_private_message(event)
-                        )
-
-                    logger.debug(f"Generated and processed demo event: {event_type}")
-
-                    # Wait 1-3 seconds between events for more frequent tips
-                    time.sleep(random.uniform(1, 3))
-
-                except Exception as e:
-                    logger.error(f"Error generating demo event: {e}")
-                    time.sleep(5)
-
-            logger.info("Demo event generator stopped")
-
-        # Start in background thread
-        thread = threading.Thread(target=generate_events, daemon=True)
-        thread.start()
-
-    def stop(self):
-        """Stop generating demo events."""
-        self.running = False
-        logger.info("Stopping demo event generator")
-
-    def _run_async_handler(self, coro):
-        """Run async handler in a new thread with event loop."""
-
-        def run():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(coro)
-            finally:
-                loop.close()
-
-        thread = threading.Thread(target=run, daemon=True)
-        thread.start()
-
-
-demo_generator: Optional[DemoEventGenerator] = None
+# DemoEventGenerator class removed - using DemoEventService instead
 event_handler: Optional[WebSocketEventHandler] = None
 
 
 def setup_socketio(app, socket_io: SocketIO):
     """Setup SocketIO event handlers for Chaturbate connections."""
-    global socketio, demo_generator, event_handler
+    global socketio, demo_service, event_handler
     socketio = socket_io
     event_handler = WebSocketEventHandler(socketio)
-    demo_generator = DemoEventGenerator(event_handler)
+    
+    # Get demo service and configure it
+    demo_service = get_dependency(DemoEventService)
+    demo_service.set_event_handler(event_handler)
 
     @socket_io.on("connect", namespace="/chaturbate")
     def handle_connect():
@@ -481,7 +192,7 @@ def setup_socketio(app, socket_io: SocketIO):
 
 def start_demo_client():
     """Start demo Chaturbate client."""
-    global demo_client_running
+    global demo_client_running, demo_task
 
     if demo_client_running:
         logger.info("Demo client is already running")
@@ -497,19 +208,21 @@ def start_demo_client():
                 "chaturbate_status", {"status": "starting"}, namespace="/chaturbate"
             )
 
-        # Send system message through event handler
-        if event_handler:
-            system_event = MockEvent(
-                object=MockChatObject(
-                    user=MockUser(username="System"),
-                    message="Demo Chaturbate client started - events will be processed through handler",
-                )
-            )
-            demo_generator._run_async_handler(event_handler.handle_chat(system_event))
-
-        # Start demo event generator
-        if demo_generator:
-            demo_generator.start()
+        # Start demo event generator in a separate thread with its own event loop
+        if demo_service:
+            def run_demo():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                # Send initial system message
+                loop.run_until_complete(demo_service.generate_chat_event())
+                
+                # Run the demo loop
+                loop.run_until_complete(demo_service.run_demo_loop())
+            
+            import threading
+            demo_task = threading.Thread(target=run_demo, daemon=True)
+            demo_task.start()
 
         if socketio:
             socketio.emit(
@@ -532,7 +245,7 @@ def start_demo_client():
 
 def stop_demo_client():
     """Stop demo Chaturbate client."""
-    global demo_client_running
+    global demo_client_running, demo_task
 
     if not demo_client_running:
         logger.info("Demo client is not running")
@@ -548,18 +261,12 @@ def stop_demo_client():
             )
 
         # Stop demo event generator
-        if demo_generator:
-            demo_generator.stop()
+        if demo_service:
+            demo_service.stop()
 
-        # Send system message through event handler
-        if event_handler and demo_generator:
-            system_event = MockEvent(
-                object=MockChatObject(
-                    user=MockUser(username="System"),
-                    message="Demo Chaturbate client stopped",
-                )
-            )
-            demo_generator._run_async_handler(event_handler.handle_chat(system_event))
+        # Cancel the task if it exists
+        if demo_task and not demo_task.done():
+            demo_task.cancel()
 
         if socketio:
             socketio.emit(

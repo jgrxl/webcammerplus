@@ -114,9 +114,7 @@ class InboxConversations(Resource):
             user = request.user
             logger.info(f"💬 Getting conversations for user: {user.auth0_id}")
             inbox_service = InboxService()
-            conversations = inbox_service.get_conversations(
-                username=user.auth0_id
-            )
+            conversations = inbox_service.get_conversations(username=user.auth0_id)
             logger.info(f"💬 Found {len(conversations)} conversations")
             return conversations
 
@@ -139,7 +137,9 @@ class ConversationMessages(Resource):
             limit = request.args.get("limit", 50, type=int)
             offset = request.args.get("offset", 0, type=int)
 
-            logger.info(f"🔍 Getting conversation messages between {user.auth0_id} and {other_user}")
+            logger.info(
+                f"🔍 Getting conversation messages between {user.auth0_id} and {other_user}"
+            )
             logger.info(f"🔍 Query params: limit={limit}, offset={offset}")
 
             inbox_service = InboxService()
@@ -223,9 +223,7 @@ class InboxStats(Resource):
             logger.info(f"📊 Getting inbox stats for user: {user.auth0_id}")
             logger.info(f"📊 User object: {user}")
             inbox_service = InboxService()
-            stats = inbox_service.get_inbox_stats(
-                username=user.auth0_id
-            )
+            stats = inbox_service.get_inbox_stats(username=user.auth0_id)
             logger.info(f"📊 Inbox stats result: {stats}")
             return stats
 
@@ -279,13 +277,13 @@ class InboxTest(Resource):
             user = request.user
             logger.info(f"🧪 TEST: User auth0_id: {user.auth0_id}")
             logger.info(f"🧪 TEST: Other user: {other_user}")
-            
+
             inbox_service = InboxService()
-            
+
             # Test conversations
             conversations = inbox_service.get_conversations(username=user.auth0_id)
             logger.info(f"🧪 TEST: Found {len(conversations)} conversations")
-            
+
             # Test messages for this specific user
             messages = inbox_service.get_conversation_messages(
                 username=user.auth0_id,
@@ -294,7 +292,7 @@ class InboxTest(Resource):
                 offset=0,
             )
             logger.info(f"🧪 TEST: Found {len(messages)} messages with {other_user}")
-            
+
             return {
                 "user_id": user.auth0_id,
                 "other_user": other_user,
@@ -303,7 +301,7 @@ class InboxTest(Resource):
                 "messages_count": len(messages),
                 "messages": messages[:3],  # First 3 for debugging
             }
-            
+
         except Exception as e:
             logger.error(f"🧪 TEST: Error in inbox test: {e}")
             api.abort(500, f"Test failed: {str(e)}")

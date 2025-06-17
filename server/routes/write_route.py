@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 
-from flask import Response, abort, jsonify, request
+from flask import abort, request
 from flask_restx import Namespace, Resource, fields
 
 from services.write_service import write_text
@@ -77,6 +77,4 @@ class Write(Resource):
         generated_text = write_text(req.style, req.text, req.to_lang)
         out = WriteResponse(success=True, written_text=generated_text)
 
-        resp = jsonify(asdict(out))
-        resp.status_code = 200
-        return resp
+        return asdict(out), 200

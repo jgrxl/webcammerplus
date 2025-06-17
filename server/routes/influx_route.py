@@ -1,14 +1,12 @@
 import logging
 from dataclasses import asdict, dataclass
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from flask import Response, abort, jsonify, request
+from flask import abort, request
 from flask_restx import Namespace, Resource, fields
 
 from client.influx_client import InfluxDBClient
 from services.influx_db_service import InfluxDBService
-from utils.query_builder import FluxQueryBuilder, Operator
 
 logger = logging.getLogger(__name__)
 
@@ -159,78 +157,22 @@ class InfluxSearch(Resource):
 
             service = get_influx_service()
 
-            # Build Flux query using QueryBuilder
-            builder = FluxQueryBuilder().from_bucket(service.bucket)
-
-            # Add time range
-            if search_req.range:
-                start = search_req.range.get("start", "-7d")
-                stop = search_req.range.get("stop", "now()")
-                builder = builder.range(start, stop)
-            else:
-                builder = builder.range("-7d")
-
-            # Add measurement filter
-            builder = builder.measurement(search_req.measurement)
-
-            # Add custom filters
-            if search_req.filters:
-                for key, value in search_req.filters.items():
-                    # Try to determine the best operator based on value type
-                    if (
-                        isinstance(value, dict)
-                        and "operator" in value
-                        and "value" in value
-                    ):
-                        # Handle complex filter format: {"operator": "!=", "value": ""}
-                        op_str = value["operator"]
-                        filter_value = value["value"]
-                        try:
-                            operator = Operator(op_str)
-                        except ValueError:
-                            operator = op_str
-                        builder = builder.filter(key, operator, filter_value)
-                    else:
-                        # Simple equality filter
-                        builder = builder.filter(key, Operator.EQ, value)
-
-            # Add field selection
-            if search_req.fields:
-                builder = builder.keep(search_req.fields)
-
-            # Add sorting
-            builder = builder.sort(search_req.sort_by, desc=search_req.sort_desc)
-
-            # Add limit
-            builder = builder.limit(search_req.limit)
-
-            flux_query = builder.build()
-
-            # Execute query
-            tables = service.query_api.query(query=flux_query, org=service.org)
-
-            # Process results
-            results = []
-            for table in tables:
-                for record in table.records:
-                    result_dict = {}
-                    for key, value in record.values.items():
-                        if not key.startswith("_") or key in [
-                            "_time",
-                            "_value",
-                            "_field",
-                            "_measurement",
-                        ]:
-                            result_dict[key] = value
-                    results.append(result_dict)
-
-            return jsonify(
-                asdict(SearchResponse(success=True, data=results, count=len(results)))
+            # Use service method to execute search
+            result = service.execute_search_query(
+                measurement=search_req.measurement,
+                filters=search_req.filters,
+                range_config=search_req.range,
+                fields=search_req.fields,
+                sort_by=search_req.sort_by,
+                sort_desc=search_req.sort_desc,
+                limit=search_req.limit,
             )
+
+            return result
 
         except Exception as e:
             return (
-                jsonify({"success": False, "data": [], "count": 0, "error": str(e)}),
+                {"success": False, "data": [], "count": 0, "error": str(e)},
                 500,
             )
 
@@ -251,17 +193,15 @@ class InfluxTips(Resource):
             service = get_influx_service()
 
             result = service.get_total_tips(days)
-            return jsonify(asdict(result))
+            return asdict(result)
 
         except Exception as e:
-            return jsonify(
-                {
-                    "success": False,
-                    "total_tokens": 0,
-                    "days": payload.get("days", 7),
-                    "error": str(e),
-                }
-            )
+            return {
+                "success": False,
+                "total_tokens": 0,
+                "days": payload.get("days", 7),
+                "error": str(e),
+            }
 
 
 @api.route("/chatters")
@@ -281,17 +221,15 @@ class InfluxChatters(Resource):
             service = get_influx_service()
 
             result = service.get_top_chatters(days, limit)
-            return jsonify(asdict(result))
+            return asdict(result)
 
         except Exception as e:
-            return jsonify(
-                {
-                    "success": False,
-                    "chatters": [],
-                    "days": payload.get("days", 7),
-                    "error": str(e),
-                }
-            )
+            return {
+                "success": False,
+                "chatters": [],
+                "days": payload.get("days", 7),
+                "error": str(e),
+            }
 
 
 @api.route("/tippers")
@@ -313,14 +251,12 @@ class InfluxTopTippers(Resource):
             service = get_influx_service()
 
             result = service.get_top_tippers(days, limit)
-            return jsonify(asdict(result))
+            return asdict(result)
 
         except Exception as e:
-            return jsonify(
-                {
-                    "success": False,
-                    "tippers": [],
-                    "days": payload.get("days", 7),
-                    "error": str(e),
-                }
-            )
+            return {
+                "success": False,
+                "tippers": [],
+                "days": payload.get("days", 7),
+                "error": str(e),
+            }

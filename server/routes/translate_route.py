@@ -1,10 +1,12 @@
 from dataclasses import asdict, dataclass
 from typing import Optional
 
-from flask import Response, abort, jsonify, request
+from flask import request
 from flask_restx import Namespace, Resource, fields
 
-from services.translate_service import translate_text
+from common.error_handlers import ExternalServiceError, ValidationError
+from common.response_models import create_error_model
+from core.dependencies import get_translate_service
 from utils.auth import check_usage_limits, requires_auth
 
 api = Namespace("translate", description="Translation operations")
@@ -29,7 +31,7 @@ translate_response_model = api.model(
     },
 )
 
-error_model = api.model("Error", {"error": fields.String(description="Error message")})
+error_model = create_error_model(api)
 
 
 @dataclass
@@ -59,16 +61,20 @@ class Translate(Resource):
         """Translate text from one language to another"""
         payload = request.get_json(force=True) or {}
         if "text" not in payload or "to_lang" not in payload:
-            abort(400, description="Both 'text' and 'to_lang' fields are required.")
+            raise ValidationError("Both 'text' and 'to_lang' fields are required.")
 
         try:
             req = TranslateRequest(**payload)
         except TypeError as e:
-            abort(400, description=str(e))
+            raise ValidationError(f"Invalid request data: {str(e)}")
 
-        translated = translate_text(req.text, req.to_lang, req.from_lang)
-        out = TranslateResponse(success=True, translation=translated)
+        try:
+            service = get_translate_service()
+            translated = service.translate_text(req.text, req.to_lang, req.from_lang)
+            out = TranslateResponse(success=True, translation=translated)
 
-        resp = jsonify(asdict(out))
-        resp.status_code = 200
-        return resp
+            return asdict(out), 200
+        except ValueError as e:
+            raise ExternalServiceError("Novita AI", str(e))
+        except Exception as e:
+            raise ExternalServiceError("Translation", f"Translation failed: {str(e)}")

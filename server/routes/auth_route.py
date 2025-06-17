@@ -1,11 +1,12 @@
-from dataclasses import asdict
 
-from flask import Response, abort, jsonify, redirect, request, session, url_for
+from flask import jsonify, redirect, request, session, url_for
 from flask_restx import Namespace, Resource, fields
 
+from core.dependencies import get_dependency
+from services.auth_service import AuthService
 from services.stripe_service import StripeService
 from services.user_service import UserService
-from utils.auth import requires_auth, setup_oauth
+from utils.auth import requires_auth
 
 api = Namespace("auth", description="Authentication and user management")
 
@@ -52,9 +53,9 @@ class UserProfile(Resource):
         """Get current user's profile information"""
         try:
             user = request.user
-            return jsonify(user.to_dict())
+            return user.to_dict()
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return {"error": str(e)}, 500
 
 
 @api.route("/usage")
@@ -69,9 +70,9 @@ class UserUsage(Resource):
             user = request.user
             user_service = UserService()
             usage_summary = user_service.get_user_usage_summary(user.auth0_id)
-            return jsonify(usage_summary)
+            return usage_summary
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return {"error": str(e)}, 500
 
 
 @api.route("/pricing")
@@ -83,9 +84,9 @@ class PricingInfo(Resource):
         try:
             stripe_service = StripeService()
             pricing = stripe_service.get_pricing_info()
-            return jsonify(pricing)
+            return pricing
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return {"error": str(e)}, 500
 
 
 # OAuth routes (these won't be documented in Swagger as they're redirects)
@@ -99,7 +100,10 @@ def setup_auth_routes(app, auth0):
         redirect_uri = request.args.get(
             "redirect_uri", url_for("auth_callback", _external=True)
         )
-        session["redirect_after_login"] = request.args.get("return_to", "/")
+        
+        # Store redirect URL using AuthService
+        auth_service = get_dependency(AuthService)
+        auth_service.store_redirect_url(request.args.get("return_to", "/"))
 
         return auth0.authorize_redirect(redirect_uri)
 
@@ -116,36 +120,16 @@ def setup_auth_routes(app, auth0):
                 # Fallback to calling userinfo endpoint
                 user_info = auth0.parse_id_token(token)
 
-            # Create or update user
-            user_service = UserService()
-            user = user_service.create_or_update_user(user_info)
+            # Use AuthService to handle the callback
+            auth_service = get_dependency(AuthService)
+            user, redirect_url = auth_service.handle_oauth_callback({
+                "userinfo": user_info,
+                "access_token": token["access_token"]
+            })
 
-            # Store auth info in session
-            session["user"] = user_info
-            session["access_token"] = token["access_token"]
+            # Setup session
+            auth_service.setup_user_session(user_info, token["access_token"])
 
-            # Create Stripe customer if doesn't exist
-            if not user.stripe_customer_id:
-                try:
-                    stripe_service = StripeService()
-                    customer = stripe_service.create_customer(
-                        user_email=user.email,
-                        user_name=user.name,
-                        auth0_id=user.auth0_id,
-                    )
-
-                    # Update user with Stripe customer ID
-                    user_service.update_user_subscription(
-                        user.auth0_id,
-                        user.subscription_tier,
-                        stripe_customer_id=customer.id,
-                    )
-                except Exception as e:
-                    # Log error but don't fail login
-                    app.logger.error(f"Failed to create Stripe customer: {e}")
-
-            # Redirect to the original destination
-            redirect_url = session.pop("redirect_after_login", "/")
             return redirect(redirect_url)
 
         except Exception as e:
@@ -155,26 +139,23 @@ def setup_auth_routes(app, auth0):
     @app.route("/auth/logout")
     def logout():
         """Clear session and redirect to Auth0 logout."""
-        session.clear()
+        auth_service = get_dependency(AuthService)
+        
+        # Clear session
+        auth_service.clear_user_session()
 
-        # Get return URL
+        # Get return URL and generate logout URL
         return_to = request.args.get("return_to", request.host_url)
-
-        # Auth0 logout URL
-        from utils.auth import Auth0Config
-
-        config = Auth0Config()
-        logout_url = (
-            f"https://{config.domain}/v2/logout?"
-            + f"returnTo={return_to}&client_id={config.client_id}"
-        )
+        logout_url = auth_service.get_logout_url(return_to)
 
         return redirect(logout_url)
 
     @app.route("/auth/user")
     def get_user():
         """Get current user from session (for frontend)."""
-        user_info = session.get("user")
+        auth_service = get_dependency(AuthService)
+        user_info = auth_service.get_current_user_from_session()
+        
         if user_info:
             return jsonify(user_info)
         else:

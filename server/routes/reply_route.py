@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 
-from flask import Response, abort, jsonify, request
+from flask import abort, request
 from flask_restx import Namespace, Resource, fields
 
 from services.reply_service import reply_text
@@ -83,6 +83,4 @@ class Reply(Resource):
         )
         out = ReplyResponse(success=True, reply=generated_reply)
 
-        resp = jsonify(asdict(out))
-        resp.status_code = 200
-        return resp
+        return asdict(out), 200

@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import stripe
 
+from config import get_config
 from models.subscription_tiers import (
     SUBSCRIPTION_TIERS,
     SubscriptionTier,
@@ -13,18 +14,19 @@ from models.subscription_tiers import (
 from models.user import Subscription
 
 logger = logging.getLogger(__name__)
+config = get_config()
 
 
 class StripeService:
     """Service for handling Stripe operations."""
 
     def __init__(self):
-        self.stripe_secret_key = os.getenv("STRIPE_SECRET_KEY")
-        self.stripe_publishable_key = os.getenv("STRIPE_PUBLISHABLE_KEY")
-        self.webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+        self.stripe_secret_key = config.stripe.secret_key
+        self.stripe_publishable_key = config.stripe.publishable_key
+        self.webhook_secret = config.stripe.webhook_secret
 
         if not self.stripe_secret_key:
-            raise ValueError("STRIPE_SECRET_KEY environment variable is required")
+            raise ValueError("STRIPE_SECRET_KEY is required in configuration")
 
         stripe.api_key = self.stripe_secret_key
 
@@ -139,6 +141,183 @@ class StripeService:
         except stripe.error.StripeError as e:
             logger.error(f"Failed to create billing portal session: {e}")
             raise
+
+    def handle_checkout_session_creation(
+        self,
+        user,
+        tier_name: str,
+        billing_cycle: str,
+        success_url: str,
+        cancel_url: str,
+    ) -> Dict[str, str]:
+        """Handle the complete checkout session creation flow.
+        
+        Args:
+            user: User object
+            tier_name: Subscription tier name
+            billing_cycle: Billing cycle (monthly/yearly)
+            success_url: URL to redirect on success
+            cancel_url: URL to redirect on cancel
+            
+        Returns:
+            Dict with checkout_url and session_id
+            
+        Raises:
+            ValueError: If validation fails
+            Exception: If checkout creation fails
+        """
+        from models.subscription_tiers import get_tier_by_name, SubscriptionTier
+        from services.user_service import UserService
+        
+        # Validate tier
+        tier = get_tier_by_name(tier_name)
+        if not tier or tier == SubscriptionTier.FREE:
+            raise ValueError("Invalid subscription tier")
+        
+        # Validate billing cycle
+        if billing_cycle not in ["monthly", "yearly"]:
+            raise ValueError("Invalid billing cycle")
+        
+        # Check if user already has an active subscription
+        if user.subscription_tier != SubscriptionTier.FREE and user.is_subscription_active():
+            raise ValueError("User already has an active subscription")
+        
+        # Ensure user has Stripe customer ID
+        if not user.stripe_customer_id:
+            customer = self.create_customer(
+                user_email=user.email,
+                user_name=user.name,
+                auth0_id=user.auth0_id,
+            )
+            
+            # Update user with customer ID
+            user_service = UserService()
+            user_service.update_user_subscription(
+                user.auth0_id,
+                user.subscription_tier,
+                stripe_customer_id=customer.id,
+            )
+            user.stripe_customer_id = customer.id
+        
+        # Create checkout session
+        session = self.create_checkout_session(
+            customer_id=user.stripe_customer_id,
+            tier=tier,
+            billing_cycle=billing_cycle,
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+        
+        return {
+            "checkout_url": session.url,
+            "session_id": session.id,
+        }
+
+    def handle_subscription_cancellation(self, user) -> Dict[str, Any]:
+        """Handle the complete subscription cancellation flow.
+        
+        Args:
+            user: User object
+            
+        Returns:
+            Dict with cancellation details
+            
+        Raises:
+            ValueError: If no active subscription
+            Exception: If cancellation fails
+        """
+        from models.subscription_tiers import SubscriptionTier
+        
+        if user.subscription_tier == SubscriptionTier.FREE:
+            raise ValueError("No active subscription to cancel")
+        
+        if not user.stripe_customer_id:
+            raise ValueError("No Stripe customer found")
+        
+        # Find active subscription
+        subscriptions = self.get_customer_subscriptions(user.stripe_customer_id)
+        
+        active_sub = None
+        for sub in subscriptions:
+            if sub.status in ["active", "trialing"]:
+                active_sub = sub
+                break
+        
+        if not active_sub:
+            raise ValueError("No active subscription found")
+        
+        # Cancel subscription at period end
+        cancelled_sub = self.cancel_subscription(active_sub.id, at_period_end=True)
+        
+        return {
+            "message": "Subscription will be cancelled at the end of the current period",
+            "cancel_at_period_end": cancelled_sub.cancel_at_period_end,
+            "current_period_end": cancelled_sub.current_period_end,
+        }
+
+    def handle_webhook_event(
+        self, payload: bytes, signature: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Handle the complete webhook event processing flow.
+        
+        Args:
+            payload: Raw webhook payload
+            signature: Stripe signature header
+            
+        Returns:
+            Dict with status and any relevant data
+            
+        Raises:
+            ValueError: If signature verification fails
+        """
+        from services.user_service import UserService
+        
+        # Skip signature verification in development if no webhook secret is configured
+        if signature and self.webhook_secret:
+            # Verify webhook signature
+            if not self.verify_webhook_signature(payload, signature):
+                raise ValueError("Invalid webhook signature")
+        else:
+            logger.warning("⚠️  Webhook signature verification skipped (development mode)")
+        
+        # Parse event
+        try:
+            import json
+            event_data = json.loads(payload)
+            event = stripe.Event.construct_from(event_data, stripe.api_key)
+        except ValueError:
+            raise ValueError("Invalid webhook payload")
+        
+        # Process event
+        subscription_data = self.process_webhook_event(event.to_dict())
+        
+        if subscription_data:
+            # Update user subscription in our system
+            user_service = UserService()
+            
+            # Find user by Stripe customer ID
+            stripe_customer_id = subscription_data.stripe_customer_id
+            
+            # Get customer from Stripe to find Auth0 ID
+            customer = self.get_customer(stripe_customer_id)
+            if customer and customer.metadata.get("auth0_id"):
+                auth0_id = customer.metadata["auth0_id"]
+                
+                # Update user subscription
+                user_service.update_user_subscription(
+                    auth0_id=auth0_id,
+                    tier=subscription_data.tier,
+                    stripe_customer_id=stripe_customer_id,
+                    subscription_start=subscription_data.current_period_start,
+                    subscription_end=subscription_data.current_period_end,
+                    status=subscription_data.status,
+                )
+                
+                # Store subscription record
+                subscription_data.user_auth0_id = auth0_id
+                user_service.create_subscription(subscription_data)
+        
+        return {"status": "success"}
 
     def get_subscription(self, subscription_id: str) -> Optional[stripe.Subscription]:
         """Get Stripe subscription by ID."""
@@ -291,11 +470,9 @@ class StripeService:
             if event_type == "invoice.payment_succeeded":
                 logger.info(f"Payment succeeded for subscription: {subscription_id}")
                 # Subscription should be active
-                status = "active"
             elif event_type == "invoice.payment_failed":
                 logger.warning(f"Payment failed for subscription: {subscription_id}")
                 # Subscription might be past due
-                status = "past_due"
             else:
                 return None
 

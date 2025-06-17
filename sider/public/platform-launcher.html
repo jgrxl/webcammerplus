@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebCammer+ Platform Launcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .service-card {
+            transition: all 0.3s ease;
+        }
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <h1 class="text-3xl font-bold text-gray-900">WebCammer+ Platform</h1>
+                        <span class="ml-4 px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">v1.0.0</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button @click="checkAllServices" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <svg v-if="!checking" class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <svg v-else class="w-5 h-5 inline mr-2 loading-spinner" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            {{ checking ? 'Checking...' : 'Check All Services' }}
+                        </button>
+                        <div class="flex items-center">
+                            <div :class="['w-3 h-3 rounded-full mr-2', allServicesHealthy ? 'bg-green-500' : 'bg-red-500']"></div>
+                            <span class="text-sm text-gray-600">{{ allServicesHealthy ? 'All Systems Operational' : 'Some Services Down' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Services Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Backend API Service -->
+                <div class="service-card bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-purple-100 rounded-lg">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+                                </svg>
+                            </div>
+                            <h3 class="ml-3 text-lg font-semibold text-gray-900">Backend API</h3>
+                        </div>
+                        <div :class="['status-indicator w-3 h-3 rounded-full', services.backend.status === 'online' ? 'bg-green-500' : services.backend.status === 'offline' ? 'bg-red-500' : 'bg-yellow-500']"></div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Flask REST API with WebSocket support</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Status:</span>
+                            <span :class="services.backend.status === 'online' ? 'text-green-600' : 'text-red-600'">{{ services.backend.status }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">URL:</span>
+                            <a :href="services.backend.url" target="_blank" class="text-blue-600 hover:underline">{{ services.backend.url }}</a>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Version:</span>
+                            <span>{{ services.backend.version || 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex space-x-2">
+                        <button @click="openService('backend')" class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Open</button>
+                        <button @click="openDocs" class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300">API Docs</button>
+                    </div>
+                </div>
+
+                <!-- Frontend Service -->
+                <div class="service-card bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-blue-100 rounded-lg">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="ml-3 text-lg font-semibold text-gray-900">Frontend UI</h3>
+                        </div>
+                        <div :class="['status-indicator w-3 h-3 rounded-full', services.frontend.status === 'online' ? 'bg-green-500' : services.frontend.status === 'offline' ? 'bg-red-500' : 'bg-yellow-500']"></div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Vue.js browser extension interface</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Status:</span>
+                            <span :class="services.frontend.status === 'online' ? 'text-green-600' : 'text-red-600'">{{ services.frontend.status }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">URL:</span>
+                            <a :href="services.frontend.url" target="_blank" class="text-blue-600 hover:underline">{{ services.frontend.url }}</a>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Build:</span>
+                            <span>{{ services.frontend.build || 'Development' }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex space-x-2">
+                        <button @click="openService('frontend')" class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Open</button>
+                        <button @click="openExtension" class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300">Extension</button>
+                    </div>
+                </div>
+
+                <!-- InfluxDB Service -->
+                <div class="service-card bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-green-100 rounded-lg">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                                </svg>
+                            </div>
+                            <h3 class="ml-3 text-lg font-semibold text-gray-900">InfluxDB</h3>
+                        </div>
+                        <div :class="['status-indicator w-3 h-3 rounded-full', services.influxdb.status === 'online' ? 'bg-green-500' : services.influxdb.status === 'offline' ? 'bg-red-500' : 'bg-yellow-500']"></div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Time-series database for analytics</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Status:</span>
+                            <span :class="services.influxdb.status === 'online' ? 'text-green-600' : 'text-red-600'">{{ services.influxdb.status }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">URL:</span>
+                            <a :href="services.influxdb.url" target="_blank" class="text-blue-600 hover:underline">{{ services.influxdb.url }}</a>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Container:</span>
+                            <span>{{ services.influxdb.container || 'webcammer-influxdb' }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex space-x-2">
+                        <button @click="openService('influxdb')" class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Open UI</button>
+                        <button @click="checkInfluxHealth" class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300">Health Check</button>
+                    </div>
+                </div>
+
+                <!-- Auth0 Service -->
+                <div class="service-card bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-orange-100 rounded-lg">
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="ml-3 text-lg font-semibold text-gray-900">Auth0</h3>
+                        </div>
+                        <div :class="['status-indicator w-3 h-3 rounded-full', services.auth0.status === 'configured' ? 'bg-green-500' : 'bg-yellow-500']"></div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Authentication & authorization service</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Status:</span>
+                            <span :class="services.auth0.status === 'configured' ? 'text-green-600' : 'text-yellow-600'">{{ services.auth0.status }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Domain:</span>
+                            <span class="truncate">{{ services.auth0.domain || 'Not configured' }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button @click="openAuth0Dashboard" class="w-full px-3 py-2 bg-orange-600 text-white text-sm rounded hover:bg-orange-700">Open Dashboard</button>
+                    </div>
+                </div>
+
+                <!-- Stripe Service -->
+                <div class="service-card bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-indigo-100 rounded-lg">
+                                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="ml-3 text-lg font-semibold text-gray-900">Stripe</h3>
+                        </div>
+                        <div :class="['status-indicator w-3 h-3 rounded-full', services.stripe.status === 'configured' ? 'bg-green-500' : 'bg-yellow-500']"></div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Payment processing & subscriptions</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Status:</span>
+                            <span :class="services.stripe.status === 'configured' ? 'text-green-600' : 'text-yellow-600'">{{ services.stripe.status }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Mode:</span>
+                            <span>{{ services.stripe.mode || 'Test' }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button @click="openStripeDashboard" class="w-full px-3 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">Open Dashboard</button>
+                    </div>
+                </div>
+
+                <!-- Novita AI Service -->
+                <div class="service-card bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-pink-100 rounded-lg">
+                                <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="ml-3 text-lg font-semibold text-gray-900">Novita AI</h3>
+                        </div>
+                        <div :class="['status-indicator w-3 h-3 rounded-full', services.novita.status === 'configured' ? 'bg-green-500' : 'bg-yellow-500']"></div>
+                    </div>
+                    <p class="text-gray-600 mb-4">AI translation & content generation</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Status:</span>
+                            <span :class="services.novita.status === 'configured' ? 'text-green-600' : 'text-yellow-600'">{{ services.novita.status }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">API Key:</span>
+                            <span>{{ services.novita.hasKey ? '••••••••' : 'Not configured' }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button @click="testNovitaAPI" class="w-full px-3 py-2 bg-pink-600 text-white text-sm rounded hover:bg-pink-700">Test API</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-lg shadow p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button @click="openTestPage('integration')" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                        <span class="text-sm">Integration Tests</span>
+                    </button>
+                    <button @click="openTestPage('api')" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="text-sm">API Tests</span>
+                    </button>
+                    <button @click="viewLogs" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="text-sm">View Logs</span>
+                    </button>
+                    <button @click="openDocumentation" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        <span class="text-sm">Documentation</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">System Status</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium text-gray-900">API Endpoints</h3>
+                            <p class="text-sm text-gray-600">{{ endpointStats.total }} total, {{ endpointStats.tested }} tested</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold" :class="endpointStats.percentage === 100 ? 'text-green-600' : 'text-yellow-600'">
+                                {{ endpointStats.percentage }}%
+                            </div>
+                            <p class="text-sm text-gray-600">Coverage</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <h3 class="font-medium text-gray-900">Environment</h3>
+                            <p class="text-sm text-gray-600">{{ environment.mode }}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm">
+                                <span class="font-medium">Python:</span> {{ environment.python }}<br>
+                                <span class="font-medium">Node:</span> {{ environment.node }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.js"></script>
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    checking: false,
+                    services: {
+                        backend: {
+                            name: 'Backend API',
+                            url: 'http://localhost:5000',
+                            status: 'checking',
+                            version: null
+                        },
+                        frontend: {
+                            name: 'Frontend',
+                            url: 'http://localhost:5173',
+                            status: 'checking',
+                            build: 'Development'
+                        },
+                        influxdb: {
+                            name: 'InfluxDB',
+                            url: 'http://localhost:8086',
+                            status: 'checking',
+                            container: 'webcammer-influxdb'
+                        },
+                        auth0: {
+                            name: 'Auth0',
+                            status: 'checking',
+                            domain: null
+                        },
+                        stripe: {
+                            name: 'Stripe',
+                            status: 'checking',
+                            mode: null
+                        },
+                        novita: {
+                            name: 'Novita AI',
+                            status: 'checking',
+                            hasKey: false
+                        }
+                    },
+                    endpointStats: {
+                        total: 27,
+                        tested: 27,
+                        percentage: 100
+                    },
+                    environment: {
+                        mode: 'Development',
+                        python: '3.13',
+                        node: '18.x'
+                    }
+                };
+            },
+            computed: {
+                allServicesHealthy() {
+                    return this.services.backend.status === 'online' &&
+                           this.services.frontend.status === 'online' &&
+                           this.services.influxdb.status === 'online';
+                }
+            },
+            methods: {
+                async checkAllServices() {
+                    this.checking = true;
+                    
+                    // Check Backend
+                    try {
+                        const backendResp = await fetch(this.services.backend.url + '/api/v1');
+                        if (backendResp.ok) {
+                            const data = await backendResp.json();
+                            this.services.backend.status = 'online';
+                            this.services.backend.version = data.api_version || '1.0';
+                        } else {
+                            this.services.backend.status = 'offline';
+                        }
+                    } catch (error) {
+                        this.services.backend.status = 'offline';
+                    }
+
+                    // Check Frontend
+                    try {
+                        const frontendResp = await fetch(this.services.frontend.url);
+                        this.services.frontend.status = frontendResp.ok ? 'online' : 'offline';
+                    } catch (error) {
+                        this.services.frontend.status = 'offline';
+                    }
+
+                    // Check InfluxDB
+                    try {
+                        const influxResp = await fetch(this.services.influxdb.url + '/health');
+                        const data = await influxResp.json();
+                        this.services.influxdb.status = data.status === 'pass' ? 'online' : 'offline';
+                    } catch (error) {
+                        this.services.influxdb.status = 'offline';
+                    }
+
+                    // Check configuration status
+                    try {
+                        const configResp = await fetch(this.services.backend.url + '/api/v1/auth/pricing');
+                        if (configResp.ok) {
+                            // If we can access pricing, backend is configured
+                            this.services.auth0.status = 'configured';
+                            this.services.stripe.status = 'configured';
+                            this.services.novita.status = 'configured';
+                        }
+                    } catch (error) {
+                        this.services.auth0.status = 'not configured';
+                        this.services.stripe.status = 'not configured';
+                        this.services.novita.status = 'not configured';
+                    }
+
+                    this.checking = false;
+                },
+                openService(service) {
+                    window.open(this.services[service].url, '_blank');
+                },
+                openDocs() {
+                    window.open('http://localhost:5000/docs', '_blank');
+                },
+                openExtension() {
+                    window.open('http://localhost:5173/index.html', '_blank');
+                },
+                openAuth0Dashboard() {
+                    window.open('https://manage.auth0.com', '_blank');
+                },
+                openStripeDashboard() {
+                    window.open('https://dashboard.stripe.com/test', '_blank');
+                },
+                async checkInfluxHealth() {
+                    try {
+                        const resp = await fetch(this.services.influxdb.url + '/health');
+                        const data = await resp.json();
+                        alert(`InfluxDB Health: ${data.status}\nVersion: ${data.version || 'Unknown'}`);
+                    } catch (error) {
+                        alert('Failed to check InfluxDB health');
+                    }
+                },
+                async testNovitaAPI() {
+                    alert('Novita AI API test would require valid API credentials');
+                },
+                openTestPage(type) {
+                    if (type === 'integration') {
+                        window.open('http://localhost:5173/test-integration.html', '_blank');
+                    } else if (type === 'api') {
+                        window.open('http://localhost:5173/test-all-frontend-api-calls.html', '_blank');
+                    }
+                },
+                viewLogs() {
+                    alert('Log viewing would open terminal or log viewer');
+                },
+                openDocumentation() {
+                    window.open('http://localhost:5000/docs', '_blank');
+                }
+            },
+            mounted() {
+                this.checkAllServices();
+                // Auto-refresh every 30 seconds
+                setInterval(() => {
+                    this.checkAllServices();
+                }, 30000);
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

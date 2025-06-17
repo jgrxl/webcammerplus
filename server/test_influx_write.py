@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to manually write data to InfluxDB and verify the tippers endpoint"""
 
-import os
 from datetime import datetime
 
 from dotenv import load_dotenv

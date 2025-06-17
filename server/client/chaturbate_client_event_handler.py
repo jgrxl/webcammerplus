@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Union
 
 try:
     from chaturbate_poller.models import Event, Message, Tip, User
@@ -22,17 +22,14 @@ class BaseEventHandler(ABC):
     @abstractmethod
     async def handle_tip(self, event: Tip) -> None:
         """Handle tip events."""
-        pass
 
     @abstractmethod
     async def handle_chat(self, event: Message) -> None:
         """Handle chat message events."""
-        pass
 
     @abstractmethod
     async def handle_message(self, event: Event) -> None:
         """Handle generic message events."""
-        pass
 
 
 class ChaturbateClientEventHandler(BaseEventHandler):

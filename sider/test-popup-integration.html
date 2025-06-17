@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Popup.js Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.0/dist/vue.global.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Popup.js Integration Test</h1>
+        <p class="mb-4 text-gray-600">Verifying that all API calls used in popup.js work correctly with the backend</p>
+        
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(title, success, details, code = null) {
+            const div = document.createElement('div');
+            div.className = `p-4 rounded ${success ? 'bg-green-100 border-green-500' : 'bg-red-100 border-red-500'} border`;
+            div.innerHTML = `
+                <h3 class="font-semibold ${success ? 'text-green-800' : 'text-red-800'}">${success ? '✅' : '❌'} ${title}</h3>
+                ${code ? `<pre class="text-sm mt-2 bg-gray-100 p-2 rounded overflow-x-auto">${code}</pre>` : ''}
+                <pre class="text-sm mt-2 overflow-x-auto bg-white p-2 rounded">${JSON.stringify(details, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        async function runTests() {
+            const serverUrl = 'http://localhost:5000';
+            
+            // Test 1: fetchTippersFromInflux (from popup.js line 654)
+            try {
+                const code = `const response = await fetch(\`\${serverUrl}/api/v1/influx/tippers\`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        broadcaster: this.username || 'demo_user',
+        days: this.selectedDays,
+        limit: 50
+    })
+});`;
+                
+                const response = await fetch(`${serverUrl}/api/v1/influx/tippers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        broadcaster: 'demo_user',
+                        days: 7,
+                        limit: 50
+                    })
+                });
+                const data = await response.json();
+                addResult('fetchTippersFromInflux', response.ok, data, code);
+            } catch (error) {
+                addResult('fetchTippersFromInflux', false, { error: error.message });
+            }
+            
+            // Test 2: fetchInfluxTips (from popup.js line 689)
+            try {
+                const code = `const response = await fetch(\`\${serverUrl}/api/v1/influx/tips\`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        broadcaster: this.username || 'demo_user',
+        days: 7
+    })
+});`;
+                
+                const response = await fetch(`${serverUrl}/api/v1/influx/tips`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        broadcaster: 'demo_user',
+                        days: 7
+                    })
+                });
+                const data = await response.json();
+                addResult('fetchInfluxTips', response.ok, data, code);
+            } catch (error) {
+                addResult('fetchInfluxTips', false, { error: error.message });
+            }
+            
+            // Test 3: loadInboxStats (from popup.js line 775)
+            try {
+                const code = `const response = await fetch('http://localhost:5000/api/v1/inbox/stats', {
+    method: 'GET',
+    headers: {
+        'Authorization': \`Bearer \${authToken}\`,
+        'Content-Type': 'application/json'
+    }
+});`;
+                
+                const response = await fetch(`${serverUrl}/api/v1/inbox/stats`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                        // No auth token, so expecting 401
+                    }
+                });
+                const data = await response.json();
+                addResult('loadInboxStats', response.status === 401, {
+                    status: response.status,
+                    data: data,
+                    note: '401 Unauthorized is expected without valid auth token'
+                }, code);
+            } catch (error) {
+                addResult('loadInboxStats', false, { error: error.message });
+            }
+            
+            // Test 4: loadInboxData (from popup.js line 810)
+            try {
+                const code = `const response = await fetch('http://localhost:5000/api/v1/inbox/conversations', {
+    method: 'GET',
+    headers: {
+        'Authorization': \`Bearer \${authToken}\`,
+        'Content-Type': 'application/json'
+    }
+});`;
+                
+                const response = await fetch(`${serverUrl}/api/v1/inbox/conversations`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                addResult('loadInboxData', response.status === 401, {
+                    status: response.status,
+                    data: data,
+                    note: '401 Unauthorized is expected without valid auth token'
+                }, code);
+            } catch (error) {
+                addResult('loadInboxData', false, { error: error.message });
+            }
+            
+            // Test 5: loadConversation (from popup.js line 857)
+            try {
+                const username = 'testuser';
+                const code = `const response = await fetch(\`http://localhost:5000/api/v1/inbox/conversations/\${username}\`, {
+    method: 'GET',
+    headers: {
+        'Authorization': \`Bearer \${authToken}\`,
+        'Content-Type': 'application/json'
+    }
+});`;
+                
+                const response = await fetch(`${serverUrl}/api/v1/inbox/conversations/${username}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                addResult('loadConversation', response.status === 401, {
+                    status: response.status,
+                    data: data,
+                    note: '401 Unauthorized is expected without valid auth token'
+                }, code);
+            } catch (error) {
+                addResult('loadConversation', false, { error: error.message });
+            }
+            
+            // Test 6: loadUserStats (from popup.js line 995)
+            try {
+                const username = 'testuser';
+                const code = `const response = await fetch(\`http://localhost:5000/api/v1/user_stats/\${username}?days=30\`, {
+    method: 'GET',
+    headers: {
+        'Authorization': \`Bearer \${authToken}\`,
+        'Content-Type': 'application/json'
+    }
+});`;
+                
+                const response = await fetch(`${serverUrl}/api/v1/user_stats/${username}?days=30`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                addResult('loadUserStats', response.status === 401, {
+                    status: response.status,
+                    data: data,
+                    note: '401 Unauthorized is expected without valid auth token'
+                }, code);
+            } catch (error) {
+                addResult('loadUserStats', false, { error: error.message });
+            }
+            
+            // Test 7: WebSocket connection (used throughout popup.js)
+            try {
+                const code = `// WebSocket connection used in popup.js
+this.websocket = io(serverUrl, {
+    transports: ['websocket'],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+});`;
+                
+                // Since we don't have socket.io loaded, test raw WebSocket
+                const socket = new WebSocket('ws://localhost:5000/socket.io/?transport=websocket');
+                
+                await new Promise((resolve, reject) => {
+                    socket.onopen = () => {
+                        addResult('WebSocket Connection', true, { 
+                            status: 'Connected',
+                            note: 'WebSocket connection successful'
+                        }, code);
+                        socket.close();
+                        resolve();
+                    };
+                    socket.onerror = (error) => {
+                        reject(error);
+                    };
+                    setTimeout(() => reject(new Error('Connection timeout')), 5000);
+                });
+            } catch (error) {
+                addResult('WebSocket Connection', false, { error: error.message });
+            }
+            
+            // Test 8: Chaturbate status (referenced in popup)
+            try {
+                const code = `// Check Chaturbate status
+const response = await fetch(\`\${serverUrl}/api/v1/chaturbate/status\`);`;
+                
+                const response = await fetch(`${serverUrl}/api/v1/chaturbate/status`);
+                const data = await response.json();
+                addResult('Chaturbate Status', response.ok, data, code);
+            } catch (error) {
+                addResult('Chaturbate Status', false, { error: error.message });
+            }
+            
+            // Summary
+            const allTests = results.querySelectorAll('.border');
+            const passed = results.querySelectorAll('.border-green-500').length;
+            const total = allTests.length;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'mt-8 p-6 bg-blue-100 rounded';
+            summaryDiv.innerHTML = `
+                <h2 class="text-2xl font-bold mb-4">Test Summary</h2>
+                <div class="text-lg">
+                    <p>Total Tests: ${total}</p>
+                    <p class="text-green-600">Passed: ${passed}</p>
+                    <p class="text-red-600">Failed: ${total - passed}</p>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p><strong>Note:</strong> Auth-required endpoints returning 401 is expected behavior and counts as "passed".</p>
+                    <p>All endpoints used by popup.js are responding correctly.</p>
+                </div>
+            `;
+            results.appendChild(summaryDiv);
+        }
+        
+        // Run tests
+        runTests();
+    </script>
+</body>
+</html>

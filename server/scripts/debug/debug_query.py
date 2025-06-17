@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Debug the get_top_tippers query"""
 
-import os
 
 from dotenv import load_dotenv
 

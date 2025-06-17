@@ -1,3 +1,9 @@
+"""Inbox service for managing the complete inbox functionality.
+
+This service acts as a facade for message and conversation services,
+providing a unified interface for inbox operations.
+"""
+
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -5,16 +11,24 @@ from typing import Dict, List, Optional
 from influxdb_client import Point
 
 from client.influx_client import InfluxDBClient
+from services.message_service import MessageService
+from services.conversation_service import ConversationService
 
 logger = logging.getLogger(__name__)
 
 
 class InboxService:
-    """Service for managing private messages and inbox functionality."""
+    """Facade service for managing private messages and inbox functionality.
+    
+    This service provides backward compatibility while delegating to specialized
+    message and conversation services.
+    """
 
     def __init__(self):
         """Initialize the inbox service."""
         self.influx_client = InfluxDBClient()
+        self.message_service = MessageService()
+        self.conversation_service = ConversationService()
 
     def get_user_messages(
         self,
@@ -24,8 +38,9 @@ class InboxService:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
     ) -> List[Dict]:
-        """
-        Get private messages for a specific user.
+        """Get private messages for a specific user.
+        
+        This method maintains backward compatibility while delegating to MessageService.
 
         Args:
             username: The username to get messages for
@@ -40,7 +55,7 @@ class InboxService:
         try:
             # For demo purposes, return some test data if no real data is found
             # This helps with testing the UI when InfluxDB doesn't have data yet
-            
+
             # Default to last 30 days if no time range specified
             if not start_time:
                 start_time = datetime.utcnow() - timedelta(days=30)
@@ -76,7 +91,8 @@ class InboxService:
                         ),
                         "from_user": record.values.get("from_user", "Unknown"),
                         "to_user": record.values.get("to_user", username),
-                        "message": record.get_value() or "",  # The message content is now in _value
+                        "message": record.get_value()
+                        or "",  # The message content is now in _value
                         "timestamp": record.get_time().isoformat(),
                         "is_read": record.values.get("is_read", "false") == "true",
                     }
@@ -84,22 +100,28 @@ class InboxService:
 
             # If no messages found in InfluxDB, provide demo data for testing
             if len(messages) == 0 and limit > 0:
-                logger.info(f"No messages found in InfluxDB for {username}, providing demo data")
+                logger.info(
+                    f"No messages found in InfluxDB for {username}, providing demo data"
+                )
                 demo_messages = [
                     {
                         "id": f"{datetime.utcnow().isoformat()}_SecretAdmirer",
                         "from_user": "SecretAdmirer",
                         "to_user": username,
                         "message": "Hey, can we chat privately? 😊",
-                        "timestamp": (datetime.utcnow() - timedelta(minutes=5)).isoformat(),
+                        "timestamp": (
+                            datetime.utcnow() - timedelta(minutes=5)
+                        ).isoformat(),
                         "is_read": False,
                     },
                     {
                         "id": f"{datetime.utcnow().isoformat()}_VIPFan",
-                        "from_user": "VIPFan", 
+                        "from_user": "VIPFan",
                         "to_user": username,
                         "message": "I love your shows! ❤️",
-                        "timestamp": (datetime.utcnow() - timedelta(minutes=30)).isoformat(),
+                        "timestamp": (
+                            datetime.utcnow() - timedelta(minutes=30)
+                        ).isoformat(),
                         "is_read": False,
                     },
                     {
@@ -107,9 +129,11 @@ class InboxService:
                         "from_user": "WhaleKing",
                         "to_user": username,
                         "message": "Thanks for the amazing content! You're incredible!",
-                        "timestamp": (datetime.utcnow() - timedelta(hours=1)).isoformat(),
+                        "timestamp": (
+                            datetime.utcnow() - timedelta(hours=1)
+                        ).isoformat(),
                         "is_read": True,
-                    }
+                    },
                 ]
                 messages = demo_messages[:limit]
 
@@ -121,8 +145,9 @@ class InboxService:
             return []
 
     def get_conversations(self, username: str) -> List[Dict]:
-        """
-        Get list of conversations (unique senders) for a user.
+        """Get list of conversations (unique senders) for a user.
+        
+        This method maintains backward compatibility while delegating to ConversationService.
 
         Args:
             username: The username to get conversations for
@@ -130,6 +155,8 @@ class InboxService:
         Returns:
             List of conversation summaries with last message and unread count
         """
+        # Delegate to conversation service
+        return self.conversation_service.get_conversations_for_user(username)
         try:
             # Query to get unique senders and their last message
             # Fix: Only group by tag columns and select specific fields to avoid type conflicts
@@ -160,7 +187,8 @@ class InboxService:
 
                     conversation = {
                         "from_user": from_user,
-                        "last_message": record.get_value() or "",  # The message content is now in _value
+                        "last_message": record.get_value()
+                        or "",  # The message content is now in _value
                         "last_message_time": record.get_time().isoformat(),
                         "unread_count": unread_count,
                     }
@@ -168,26 +196,34 @@ class InboxService:
 
             # If no conversations found, provide demo data
             if len(conversations) == 0:
-                logger.info(f"No conversations found in InfluxDB for {username}, providing demo data")
+                logger.info(
+                    f"No conversations found in InfluxDB for {username}, providing demo data"
+                )
                 conversations = [
                     {
                         "from_user": "SecretAdmirer",
                         "last_message": "Hey, can we chat privately? 😊",
-                        "last_message_time": (datetime.utcnow() - timedelta(minutes=5)).isoformat(),
+                        "last_message_time": (
+                            datetime.utcnow() - timedelta(minutes=5)
+                        ).isoformat(),
                         "unread_count": 1,
                     },
                     {
                         "from_user": "VIPFan",
                         "last_message": "I love your shows! ❤️",
-                        "last_message_time": (datetime.utcnow() - timedelta(minutes=30)).isoformat(),
+                        "last_message_time": (
+                            datetime.utcnow() - timedelta(minutes=30)
+                        ).isoformat(),
                         "unread_count": 1,
                     },
                     {
                         "from_user": "WhaleKing",
                         "last_message": "Thanks for the amazing content! You're incredible!",
-                        "last_message_time": (datetime.utcnow() - timedelta(hours=1)).isoformat(),
+                        "last_message_time": (
+                            datetime.utcnow() - timedelta(hours=1)
+                        ).isoformat(),
                         "unread_count": 0,
-                    }
+                    },
                 ]
 
             # Sort by last message time
@@ -344,7 +380,8 @@ class InboxService:
                         ),
                         "from_user": record.values.get("from_user", "Unknown"),
                         "to_user": record.values.get("to_user", "Unknown"),
-                        "message": record.get_value() or "",  # The message content is now in _value
+                        "message": record.get_value()
+                        or "",  # The message content is now in _value
                         "timestamp": record.get_time().isoformat(),
                         "is_read": record.values.get("is_read", "false") == "true",
                         "is_sent": record.values.get("from_user") == username,
@@ -353,23 +390,29 @@ class InboxService:
 
             # If no messages found, provide demo conversation data
             if len(messages) == 0 and limit > 0:
-                logger.info(f"No conversation found between {username} and {other_user}, providing demo data")
+                logger.info(
+                    f"No conversation found between {username} and {other_user}, providing demo data"
+                )
                 demo_messages = [
                     {
                         "id": f"{datetime.utcnow().isoformat()}_{other_user}_1",
                         "from_user": other_user,
                         "to_user": username,
                         "message": f"Hey there! Love your shows! ❤️",
-                        "timestamp": (datetime.utcnow() - timedelta(hours=2)).isoformat(),
+                        "timestamp": (
+                            datetime.utcnow() - timedelta(hours=2)
+                        ).isoformat(),
                         "is_read": True,
                         "is_sent": False,
                     },
                     {
-                        "id": f"{datetime.utcnow().isoformat()}_{username}_1", 
+                        "id": f"{datetime.utcnow().isoformat()}_{username}_1",
                         "from_user": username,
                         "to_user": other_user,
                         "message": "Thank you so much! That means a lot 😊",
-                        "timestamp": (datetime.utcnow() - timedelta(hours=1, minutes=30)).isoformat(),
+                        "timestamp": (
+                            datetime.utcnow() - timedelta(hours=1, minutes=30)
+                        ).isoformat(),
                         "is_read": True,
                         "is_sent": True,
                     },
@@ -378,10 +421,12 @@ class InboxService:
                         "from_user": other_user,
                         "to_user": username,
                         "message": "Can we chat privately sometime?",
-                        "timestamp": (datetime.utcnow() - timedelta(minutes=5)).isoformat(),
+                        "timestamp": (
+                            datetime.utcnow() - timedelta(minutes=5)
+                        ).isoformat(),
                         "is_read": False,
                         "is_sent": False,
-                    }
+                    },
                 ]
                 messages = demo_messages[:limit]
 
@@ -501,7 +546,9 @@ class InboxService:
                     "unread_messages": 2,
                     "read_messages": 1,
                 }
-                logger.info(f"No stats found in InfluxDB for {username}, providing demo stats")
+                logger.info(
+                    f"No stats found in InfluxDB for {username}, providing demo stats"
+                )
             else:
                 stats = {
                     "total_messages": total_count,

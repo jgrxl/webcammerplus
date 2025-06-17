@@ -1,12 +1,14 @@
 import logging
-import os
-from typing import List, Optional
+from typing import Optional
 
 import influxdb_client
 from influxdb_client.client.query_api import QueryApi
 from influxdb_client.client.write_api import WriteApi
 
+from config import get_config
+
 logger = logging.getLogger(__name__)
+config = get_config()
 
 
 class InfluxDBClient:
@@ -37,15 +39,15 @@ class InfluxDBClient:
         """Initialize the InfluxDB client.
 
         Args:
-            url: InfluxDB URL (overrides INFLUXDB_URL env var)
-            token: Authentication token (overrides INFLUXDB_TOKEN env var)
-            org: Organization name (overrides INFLUXDB_ORG env var)
-            bucket: Bucket name (overrides INFLUXDB_BUCKET env var)
+            url: InfluxDB URL (overrides config)
+            token: Authentication token (overrides config)
+            org: Organization name (overrides config)
+            bucket: Bucket name (overrides config)
         """
-        self.url = url or os.getenv("INFLUXDB_URL", "http://localhost:8086")
-        self.token = token or os.getenv("INFLUXDB_TOKEN")
-        self.org = org or os.getenv("INFLUXDB_ORG")
-        self.bucket = bucket or os.getenv("INFLUXDB_BUCKET")
+        self.url = url or config.influxdb.url
+        self.token = token or config.influxdb.token
+        self.org = org or config.influxdb.org
+        self.bucket = bucket or config.influxdb.bucket
 
         self._validate_config()
         self._client: Optional[influxdb_client.InfluxDBClient] = None

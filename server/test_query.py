@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to debug the InfluxDB query"""
 
-import os
 
 from dotenv import load_dotenv
 

@@ -7,9 +7,6 @@ from docker import DockerClient
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import (
     SYNCHRONOUS,
-    PointSettings,
-    WriteApi,
-    WriteOptions,
 )
 
 from server.services.helper import is_docker_available, wait_for_influxdb

@@ -1,45 +1,19 @@
 import logging
-import os
 from functools import wraps
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
 import jwt
 from authlib.integrations.flask_client import OAuth
-from flask import current_app, jsonify, request
+from flask import request
 
+from config import get_config
 from services.user_service import UserService
 
 logger = logging.getLogger(__name__)
+config = get_config()
 
 
-class Auth0Config:
-    """Auth0 configuration helper."""
-
-    def __init__(self):
-        self.domain = os.getenv("AUTH0_DOMAIN", "dev-4xh5xi1xfh7w7y2n.us.auth0.com")
-        self.client_id = os.getenv(
-            "AUTH0_CLIENT_ID", "57sIYSODLSDddlyQVokooAFjTEHDNRYo"
-        )
-        self.client_secret = os.getenv("AUTH0_CLIENT_SECRET")
-        self.audience = os.getenv(
-            "AUTH0_AUDIENCE", "https://dev-4xh5xi1xfh7w7y2n.us.auth0.com/api/v2/"
-        )  # Auth0 Management API
-        self.algorithms = ["RS256"]
-
-        if not all([self.domain, self.client_id]):
-            raise ValueError(
-                "Missing required Auth0 environment variables (domain, client_id)"
-            )
-
-    @property
-    def issuer(self) -> str:
-        """Get Auth0 issuer URL."""
-        return f"https://{self.domain}/"
-
-    @property
-    def jwks_url(self) -> str:
-        """Get JWKS URL for token verification."""
-        return f"https://{self.domain}/.well-known/jwks.json"
+# Remove the Auth0Config class as we're using the centralized config
 
 
 class AuthError(Exception):
@@ -91,14 +65,14 @@ def get_token_auth_header() -> str:
     return parts[1]
 
 
-def verify_decode_jwt(token: str, config: Auth0Config) -> Dict[str, Any]:
+def verify_decode_jwt(token: str) -> Dict[str, Any]:
     """Verify and decode JWT token."""
     # Get the public key from Auth0
     import requests
 
     try:
         # Get JWKS
-        jwks_response = requests.get(config.jwks_url)
+        jwks_response = requests.get(config.auth0.jwks_uri)
         jwks_response.raise_for_status()
         jwks = jwks_response.json()
 
@@ -130,18 +104,18 @@ def verify_decode_jwt(token: str, config: Auth0Config) -> Dict[str, Any]:
         # Verify token
         from jwt import PyJWKClient
 
-        jwks_client = PyJWKClient(config.jwks_url)
+        jwks_client = PyJWKClient(config.auth0.jwks_uri)
         signing_key = jwks_client.get_signing_key_from_jwt(token)
 
         # Decode with or without audience validation
         decode_options = {
-            "algorithms": config.algorithms,
-            "issuer": config.issuer,
+            "algorithms": config.auth0.algorithms,
+            "issuer": config.auth0.issuer,
         }
 
         # Only add audience if it's configured
-        if config.audience:
-            decode_options["audience"] = config.audience
+        if config.auth0.audience:
+            decode_options["audience"] = config.auth0.audience
 
         payload = jwt.decode(token, signing_key.key, **decode_options)
 
@@ -176,9 +150,8 @@ def requires_auth(f: Callable) -> Callable:
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
-            config = Auth0Config()
             token = get_token_auth_header()
-            payload = verify_decode_jwt(token, config)
+            payload = verify_decode_jwt(token)
 
             # Add user info to request context
             request.current_user = payload
@@ -189,16 +162,14 @@ def requires_auth(f: Callable) -> Callable:
             request.user = user
 
         except AuthError as e:
-            return jsonify(e.error), e.status_code
+            return e.error, e.status_code
         except Exception as e:
             logger.error(f"Authentication error: {e}")
             return (
-                jsonify(
-                    {
-                        "code": "authentication_failed",
-                        "description": "Authentication failed.",
-                    }
-                ),
+                {
+                    "code": "authentication_failed",
+                    "description": "Authentication failed.",
+                },
                 500,
             )
 
@@ -215,19 +186,17 @@ def requires_subscription(min_tier: str = "free") -> Callable:
         def decorated(*args, **kwargs):
             # This decorator should be used after @requires_auth
             if not hasattr(request, "user"):
-                return jsonify({"error": "Authentication required"}), 401
+                return {"error": "Authentication required"}, 401
 
             user = request.user
 
             # Check if subscription is active
             if not user.is_subscription_active():
                 return (
-                    jsonify(
-                        {
-                            "error": "Active subscription required",
-                            "subscription_status": user.subscription_status,
-                        }
-                    ),
+                    {
+                        "error": "Active subscription required",
+                        "subscription_status": user.subscription_status,
+                    },
                     403,
                 )
 
@@ -238,12 +207,10 @@ def requires_subscription(min_tier: str = "free") -> Callable:
 
             if user_level < required_level:
                 return (
-                    jsonify(
-                        {
-                            "error": f'Subscription tier "{min_tier}" or higher required',
-                            "current_tier": user.subscription_tier.value,
-                        }
-                    ),
+                    {
+                        "error": f'Subscription tier "{min_tier}" or higher required',
+                        "current_tier": user.subscription_tier.value,
+                    },
                     403,
                 )
 
@@ -262,7 +229,7 @@ def check_usage_limits(operation: str, increment: int = 1) -> Callable:
         def decorated(*args, **kwargs):
             # This decorator should be used after @requires_auth
             if not hasattr(request, "user"):
-                return jsonify({"error": "Authentication required"}), 401
+                return {"error": "Authentication required"}, 401
 
             user = request.user
             user_service = UserService()
@@ -274,7 +241,7 @@ def check_usage_limits(operation: str, increment: int = 1) -> Callable:
 
             if not can_proceed:
                 return (
-                    jsonify({"error": error_message, "usage_exceeded": True}),
+                    {"error": error_message, "usage_exceeded": True},
                     429,
                 )  # Too Many Requests
 
@@ -295,13 +262,11 @@ def setup_oauth(app) -> OAuth:
     """Setup OAuth for Auth0 integration."""
     oauth = OAuth(app)
 
-    config = Auth0Config()
-
     auth0 = oauth.register(
         "auth0",
-        client_id=config.client_id,
-        client_secret=config.client_secret,
-        server_metadata_url=f"https://{config.domain}/.well-known/openid_configuration",
+        client_id=config.auth0.client_id,
+        client_secret=config.auth0.client_secret,
+        server_metadata_url=f"https://{config.auth0.domain}/.well-known/openid_configuration",
         client_kwargs={
             "scope": "openid profile email",
         },

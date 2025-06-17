@@ -261,12 +261,12 @@ class WebCammerAPI {
   }
 
   // Convenience methods for InfluxDB endpoints
-  async getTips(days = 7) {
-    return await this.getInfluxData('tips', { days });
+  async getTips(days = 7, broadcaster = 'demo_user') {
+    return await this.getInfluxData('tips', { broadcaster, days });
   }
 
-  async getTopChatters(days = 7, limit = 10) {
-    return await this.getInfluxData('chatters', { days, limit });
+  async getTopChatters(days = 7, limit = 10, broadcaster = 'demo_user') {
+    return await this.getInfluxData('chatters', { broadcaster, days, limit });
   }
 
   async searchInflux(searchParams) {

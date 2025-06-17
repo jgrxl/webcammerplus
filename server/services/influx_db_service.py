@@ -1,7 +1,6 @@
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from influxdb_client.client.exceptions import InfluxDBError
 
@@ -382,3 +381,111 @@ class InfluxDBService:
     def get_top_chatter(self, days: int = 7) -> TopChatterResponse:
         """Backward compatibility alias for get_top_chatters."""
         return self.get_top_chatters(days=days)
+
+    def execute_search_query(
+        self,
+        measurement: str,
+        filters: Optional[Dict[str, Any]] = None,
+        range_config: Optional[Dict[str, str]] = None,
+        fields: Optional[List[str]] = None,
+        sort_by: str = "_time",
+        sort_desc: bool = True,
+        limit: int = 100,
+    ) -> Dict[str, Any]:
+        """Execute a flexible search query on InfluxDB data.
+        
+        Args:
+            measurement: The measurement name to query
+            filters: Dictionary of field filters
+            range_config: Time range configuration with 'start' and 'stop'
+            fields: List of fields to include in results
+            sort_by: Field to sort by
+            sort_desc: Sort in descending order
+            limit: Maximum number of results
+            
+        Returns:
+            Dictionary with success status, data, and count
+        """
+        try:
+            # Build query using QueryBuilder
+            builder = FluxQueryBuilder().from_bucket(self.bucket)
+            
+            # Add time range
+            if range_config:
+                start = range_config.get("start", "-7d")
+                stop = range_config.get("stop", "now()")
+                builder = builder.range(start, stop)
+            else:
+                builder = builder.range("-7d")
+            
+            # Add measurement filter
+            builder = builder.measurement(measurement)
+            
+            # Add custom filters
+            if filters:
+                for key, value in filters.items():
+                    # Handle complex filter format
+                    if isinstance(value, dict) and "operator" in value and "value" in value:
+                        op_str = value["operator"]
+                        filter_value = value["value"]
+                        try:
+                            from utils.query_builder import Operator
+                            operator = Operator(op_str)
+                        except ValueError:
+                            operator = op_str
+                        builder = builder.filter(key, operator, filter_value)
+                    else:
+                        # Simple equality filter
+                        builder = builder.filter(key, "==", value)
+            
+            # Add field selection - avoid _value field as it can have mixed types
+            if fields:
+                # Filter out _value from keep list to avoid schema collision
+                safe_fields = [f for f in fields if f != "_value"]
+                if safe_fields:
+                    builder = builder.keep(safe_fields)
+            
+            # Add sorting
+            builder = builder.sort(sort_by, desc=sort_desc)
+            
+            # Add limit
+            builder = builder.limit(limit)
+            
+            # Build and execute query
+            flux_query = builder.build()
+            logger.debug(f"Executing search query: {flux_query}")
+            
+            tables = self.query_api.query(query=flux_query, org=self.org)
+            
+            # Process results
+            results = []
+            for table in tables:
+                for record in table.records:
+                    result_dict = {}
+                    for key, value in record.values.items():
+                        # Include non-internal fields and specific internal fields
+                        if not key.startswith("_") or key in [
+                            "_time", "_value", "_field", "_measurement"
+                        ]:
+                            # Convert datetime objects to ISO format strings
+                            if hasattr(value, 'isoformat'):
+                                result_dict[key] = value.isoformat()
+                            else:
+                                result_dict[key] = value
+                    results.append(result_dict)
+            
+            logger.info(f"Search query returned {len(results)} results")
+            return {
+                "success": True,
+                "data": results,
+                "count": len(results),
+            }
+            
+        except Exception as e:
+            logger.error(f"Error executing search query: {e}")
+            return {
+                "success": False,
+                "data": [],
+                "count": 0,
+                "error": str(e),
+            }
