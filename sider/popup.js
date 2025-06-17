@@ -71,6 +71,11 @@ document.addEventListener('DOMContentLoaded', function() {
         ],
         userStatsCache: {},  // Cache for user statistics
         userStatsLoading: new Set(),  // Track which users are being loaded
+        // CSRF related data
+        csrfToken: null,
+        csrfTokenValid: false,
+        csrfLastCheck: 0,
+        showCsrfStatus: false,
         // Inbox related data
         conversations: [],
         currentConversation: null,
@@ -543,7 +548,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Load user stats when switching to users tab
         if (tab === 'users') {
-          this.loadUserStatsForVisibleUsers();
+          // Delay stats loading to show UI immediately
+          setTimeout(() => {
+            this.loadUserStatsForVisibleUsers();
+          }, 100);
         }
       },
       
@@ -1023,14 +1031,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.activeTab !== 'users') return;
 
         const visibleUsers = this.filteredUsers.slice(0, 10); // Limit to first 10 users
+        const statsToLoad = [];
+        
         for (const user of visibleUsers) {
           // Only load if we don't have cached stats (or they're old)
           const cached = this.userStatsCache[user.username];
           const isStale = !cached || (Date.now() - cached.cachedAt > 300000); // 5 minutes
           
-          if (isStale) {
-            await this.getUserStats(user.username);
+          if (isStale && !this.userStatsLoading.has(user.username)) {
+            statsToLoad.push(user.username);
           }
+        }
+
+        // Load stats in parallel for better performance
+        if (statsToLoad.length > 0) {
+          console.log('📊 Loading stats for', statsToLoad.length, 'users in parallel');
+          const promises = statsToLoad.map(username => 
+            this.getUserStats(username).catch(error => {
+              console.error(`Failed to load stats for ${username}:`, error);
+              return null;
+            })
+          );
+          await Promise.all(promises);
         }
       },
 
@@ -1084,6 +1106,52 @@ document.addEventListener('DOMContentLoaded', function() {
       openUserProfile(username) {
         const profileUrl = `https://chaturbate.com/${username}`;
         window.open(profileUrl, '_blank');
+      },
+
+      async openUserPM(username) {
+        // Use the same logic as startPrivateMessage
+        console.log('Opening PM from users list for:', username);
+        
+        // Set flag to indicate we're navigating to a specific conversation
+        this._navigatingToConversation = true;
+        
+        // Set the current conversation immediately for instant UI feedback
+        this.currentConversation = username;
+        this.currentMessages = [];
+        
+        // Switch to inbox tab
+        this.switchTab('inbox');
+        
+        // Start loading conversations if needed (in parallel)
+        const conversationsPromise = this.conversations.length === 0 && this.isAuthenticated
+          ? this.loadConversations(true)
+          : Promise.resolve();
+        
+        // Wait for next tick only
+        await this.$nextTick();
+        
+        // Now wait for conversations to load if they were loading
+        if (conversationsPromise) {
+          await conversationsPromise;
+        }
+        
+        // Check if we have an existing conversation with this user
+        const existingConversation = this.conversations.find(conv => conv.from_user === username);
+        
+        if (existingConversation) {
+          // Load messages for existing conversation
+          console.log('📬 Loading messages for:', username);
+          // Don't await - let messages load in background
+          this.loadMessages(username).catch(error => {
+            console.error('Failed to load messages:', error);
+          });
+        } else {
+          // No existing conversation - we already set up empty state above
+          console.log('📝 No existing conversation with:', username, '- showing empty thread');
+        }
+        
+        // Clear the navigation flag
+        this._navigatingToConversation = false;
       },
 
       startAutoRefresh() {
@@ -1239,6 +1307,409 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clear the navigation flag
         this._navigatingToConversation = false;
+      },
+
+      // CSRF Token Management
+      initializeCSRF() {
+        if (window.csrfParser) {
+          // Set up token change listener
+          window.csrfParser.onTokenChange((newToken, oldToken) => {
+            this.csrfToken = newToken;
+            this.csrfTokenValid = window.csrfParser.isTokenValid();
+            this.csrfLastCheck = Date.now();
+            console.log('🔐 CSRF token updated in Vue app:', {
+              hasToken: !!newToken,
+              isValid: this.csrfTokenValid,
+              tokenPreview: newToken ? `${newToken.substring(0, 8)}...` : null
+            });
+          });
+
+          // Get initial token
+          this.refreshCSRFToken();
+          console.log('✅ CSRF integration initialized');
+        } else {
+          console.warn('⚠️ CSRF Parser not available');
+        }
+      },
+
+      refreshCSRFToken() {
+        if (window.csrfParser) {
+          this.csrfToken = window.csrfParser.getCurrentToken(true);
+          this.csrfTokenValid = window.csrfParser.isTokenValid();
+          this.csrfLastCheck = Date.now();
+          return this.csrfToken;
+        }
+        return null;
+      },
+
+      getCSRFStatus() {
+        if (!window.csrfParser) {
+          return { status: 'unavailable', message: 'CSRF Parser not loaded' };
+        }
+
+        const tokenInfo = window.csrfParser.getTokenInfo();
+        return {
+          status: tokenInfo.hasToken ? 'ready' : 'missing',
+          message: tokenInfo.hasToken ? 'CSRF token available' : 'No CSRF token found',
+          tokenInfo
+        };
+      },
+
+      // Enhanced API methods with CSRF support
+      async callChaturbateAPI(endpoint, data = {}, method = 'POST') {
+        if (!window.csrfParser) {
+          throw new Error('CSRF Parser not available');
+        }
+
+        try {
+          const response = await window.csrfParser.callChaturbateAPI(endpoint, data, method);
+          console.log('✅ Chaturbate API call successful:', endpoint);
+          return response;
+        } catch (error) {
+          console.error('❌ Chaturbate API call failed:', endpoint, error);
+          throw error;
+        }
+      },
+
+      async testChaturbateConnection() {
+        try {
+          this.addEvent('system', 'Testing Chaturbate API connection...');
+          
+          // Try to communicate with content script first
+          const response = await this.sendMessageToContentScript({ action: 'testConnection' });
+          
+          if (response && response.success) {
+            this.addEvent('system', '✅ Chaturbate API connection successful via content script');
+            console.log('📡 Connection test result:', response.data);
+            return response.data;
+          } else {
+            throw new Error(response?.error || 'Content script communication failed');
+          }
+        } catch (error) {
+          this.addEvent('error', `❌ Chaturbate API connection failed: ${error.message}`);
+          console.error('🚫 API connection test failed:', error);
+          throw error;
+        }
+      },
+
+      async sendChaturbateMessage(username, message) {
+        try {
+          this.addEvent('system', `Sending message to ${username}...`);
+          
+          const response = await this.callChaturbateAPI('/api/send_private_message/', {
+            username,
+            message
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            this.addEvent('system', `✅ Message sent to ${username}`);
+            return data;
+          } else {
+            throw new Error(`Failed to send message: ${response.status}`);
+          }
+        } catch (error) {
+          this.addEvent('error', `❌ Failed to send message to ${username}: ${error.message}`);
+          throw error;
+        }
+      },
+
+      async sendChatMessage(message) {
+        try {
+          this.addEvent('system', `Sending chat message: "${message}"`);
+          
+          const response = await this.sendMessageToContentScript({ 
+            action: 'sendMessage', 
+            message: message 
+          });
+          
+          if (response && response.success) {
+            this.addEvent('system', `✅ Chat message sent successfully`);
+            console.log('📝 Chat message response:', response.data);
+            return response.data;
+          } else {
+            throw new Error(response?.error || 'Failed to send message via content script');
+          }
+        } catch (error) {
+          this.addEvent('error', `❌ Failed to send chat message: ${error.message}`);
+          console.error('🚫 Chat message failed:', error);
+          throw error;
+        }
+      },
+
+      async publishChatMessage(room, message, username) {
+        try {
+          this.addEvent('system', `Publishing message to room ${room}...`);
+          
+          if (!window.csrfParser) {
+            throw new Error('CSRF Parser not available');
+          }
+
+          const data = await window.csrfParser.publishChatMessage(room, message, username);
+          this.addEvent('system', `✅ Message published to ${room}`);
+          console.log('📡 Published message response:', data);
+          return data;
+        } catch (error) {
+          this.addEvent('error', `❌ Failed to publish message: ${error.message}`);
+          console.error('🚫 Publish failed:', error);
+          throw error;
+        }
+      },
+
+      testChatMessageAPI() {
+        // Test the chat message API with the exact format from your example
+        const testMessage = "Hello from WebCammerPlus!";
+        this.sendChatMessage(testMessage);
+      },
+
+      toggleCSRFStatus() {
+        this.showCsrfStatus = !this.showCsrfStatus;
+      },
+
+      // Communication with content script
+      async sendMessageToContentScript(message) {
+        return new Promise((resolve) => {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0] && tabs[0].url.includes('chaturbate.com')) {
+              chrome.tabs.sendMessage(tabs[0].id, message, (response) => {
+                if (chrome.runtime.lastError) {
+                  console.error('❌ Content script communication error:', chrome.runtime.lastError);
+                  resolve({ success: false, error: chrome.runtime.lastError.message });
+                } else {
+                  resolve(response);
+                }
+              });
+            } else {
+              resolve({ success: false, error: 'Not on Chaturbate page' });
+            }
+          });
+        });
+      },
+
+      async getContentScriptStatus() {
+        try {
+          const response = await this.sendMessageToContentScript({ action: 'getStatus' });
+          if (response && response.ready) {
+            this.csrfTokenValid = response.tokenValid;
+            this.csrfToken = response.token;
+            console.log('📡 Content script status:', response);
+            return response;
+          }
+          return null;
+        } catch (error) {
+          console.error('❌ Failed to get content script status:', error);
+          return null;
+        }
+      },
+
+      // ========================================
+      // REST-STYLE API METHODS
+      // ========================================
+
+      /**
+       * REST API Interface - Call like: await vueApp.api('/send-message', {message: 'hello'})
+       */
+      async api(endpoint, params = {}, options = {}) {
+        const startTime = Date.now();
+        console.log(`🌐 API Call: ${endpoint}`, params);
+
+        try {
+          let result;
+
+          switch (endpoint) {
+            case '/status':
+              result = await this.apiGetStatus();
+              break;
+
+            case '/send-message':
+              if (!params.message) throw new Error('message parameter required');
+              result = await this.apiSendMessage(params.message);
+              break;
+
+            case '/publish-to-room':
+              const { room, message, username } = params;
+              if (!room || !message || !username) {
+                throw new Error('room, message, and username parameters required');
+              }
+              result = await this.apiPublishToRoom(room, message, username);
+              break;
+
+            case '/test-connection':
+              result = await this.apiTestConnection();
+              break;
+
+            case '/token-info':
+              result = await this.apiGetTokenInfo();
+              break;
+
+            case '/room-info':
+              result = await this.apiGetRoomInfo();
+              break;
+
+            default:
+              throw new Error(`Unknown endpoint: ${endpoint}`);
+          }
+
+          const duration = Date.now() - startTime;
+          console.log(`✅ API Success: ${endpoint} (${duration}ms)`, result);
+
+          return {
+            success: true,
+            data: result,
+            endpoint,
+            duration,
+            timestamp: new Date().toISOString()
+          };
+
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`❌ API Error: ${endpoint} (${duration}ms)`, error);
+
+          return {
+            success: false,
+            error: error.message,
+            endpoint,
+            duration,
+            timestamp: new Date().toISOString()
+          };
+        }
+      },
+
+      // Individual API method implementations
+      async apiGetStatus() {
+        return await this.sendMessageToContentScript({ action: 'getStatus' });
+      },
+
+      async apiSendMessage(message) {
+        const response = await this.sendMessageToContentScript({ 
+          action: 'sendMessage', 
+          message: message 
+        });
+        
+        if (response && response.success) {
+          // Also add to local events feed
+          this.addEvent('api', `✅ Message sent via API: "${message}"`);
+          return response.data;
+        } else {
+          throw new Error(response?.error || 'Failed to send message');
+        }
+      },
+
+      async apiPublishToRoom(room, message, username) {
+        const response = await this.sendMessageToContentScript({ 
+          action: 'publishToRoom', 
+          room, 
+          message, 
+          username 
+        });
+        
+        if (response && response.success) {
+          this.addEvent('api', `✅ Published to room ${room}: "${message}"`);
+          return response.data;
+        } else {
+          throw new Error(response?.error || 'Failed to publish to room');
+        }
+      },
+
+      async apiTestConnection() {
+        const response = await this.sendMessageToContentScript({ action: 'testConnection' });
+        
+        if (response && response.success) {
+          this.addEvent('api', '✅ Connection test successful');
+          return response.data;
+        } else {
+          throw new Error(response?.error || 'Connection test failed');
+        }
+      },
+
+      async apiGetTokenInfo() {
+        const response = await this.sendMessageToContentScript({ action: 'getInfo' });
+        return response || null;
+      },
+
+      async apiGetRoomInfo() {
+        // Extract current room info from page context
+        return {
+          room: this.extractRoomFromURL(),
+          url: await this.getCurrentTabURL(),
+          timestamp: new Date().toISOString()
+        };
+      },
+
+      // Helper method to get current tab URL
+      async getCurrentTabURL() {
+        return new Promise((resolve) => {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            resolve(tabs[0]?.url || 'unknown');
+          });
+        });
+      },
+
+      extractRoomFromURL() {
+        // This will be called in popup context, so we need to get it from content script
+        return 'unknown'; // Could enhance this later
+      },
+
+      // ========================================
+      // BATCH API METHODS
+      // ========================================
+
+      /**
+       * Execute multiple API calls in parallel
+       * Usage: await vueApp.apiBatch([
+       *   ['/status'],
+       *   ['/send-message', {message: 'hello'}],
+       *   ['/token-info']
+       * ])
+       */
+      async apiBatch(calls) {
+        console.log('🔄 Executing batch API calls:', calls.length);
+        
+        const promises = calls.map(([endpoint, params]) => 
+          this.api(endpoint, params).catch(error => ({ 
+            success: false, 
+            error: error.message,
+            endpoint 
+          }))
+        );
+
+        const results = await Promise.all(promises);
+        
+        console.log('✅ Batch API completed:', {
+          total: results.length,
+          successful: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length
+        });
+
+        return {
+          success: true,
+          results,
+          summary: {
+            total: results.length,
+            successful: results.filter(r => r.success).length,
+            failed: results.filter(r => !r.success).length
+          }
+        };
+      },
+
+      // ========================================
+      // API TESTING & DEBUGGING
+      // ========================================
+
+      async testAPI() {
+        console.log('🧪 Testing WebCammerPlus API...');
+        
+        const tests = [
+          ['/status', {}],
+          ['/token-info', {}],
+          ['/test-connection', {}]
+        ];
+
+        const results = await this.apiBatch(tests);
+        
+        this.addEvent('api', `🧪 API Test completed: ${results.summary.successful}/${results.summary.total} passed`);
+        
+        return results;
       }
     },
 
@@ -1387,6 +1858,14 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Start auto-refresh for user stats
       this.startAutoRefresh();
+      
+      // Initialize CSRF token management
+      this.initializeCSRF();
+      
+      // Check content script status
+      setTimeout(() => {
+        this.getContentScriptStatus();
+      }, 1000);
       
       // Add welcome message after component mounts
       setTimeout(() => {

@@ -234,9 +234,15 @@
         <div v-if="showHome" class="home-content">
           <div class="content-header">
             <h1>WebCammer+</h1>
-            <div class="connection-status" v-if="isAttached">
-              <div class="status-dot connected"></div>
-              <span>Connected to Chaturbate</span>
+            <div class="status-indicators">
+              <div class="connection-status" v-if="isAttached">
+                <div class="status-dot connected"></div>
+                <span>Connected to Chaturbate</span>
+              </div>
+              <div class="csrf-status" v-if="csrfTokenValid" @click="toggleCSRFStatus" title="CSRF Token Active">
+                <div class="status-dot csrf-ready"></div>
+                <span>API Ready</span>
+              </div>
             </div>
           </div>
           
@@ -267,6 +273,15 @@
                 USERS ({{ onlineUsers }})
               </div>
               <div class="tab-controls">
+                <button v-if="csrfTokenValid" class="test-api-btn" @click="testChaturbateConnection" title="Test Chaturbate API">
+                  🧪 API
+                </button>
+                <button v-if="csrfTokenValid" class="test-chat-btn" @click="testChatMessageAPI" title="Test Chat Message">
+                  💬 Chat
+                </button>
+                <button v-if="csrfTokenValid" class="test-rest-btn" @click="testAPI" title="Test REST API">
+                  🌐 REST
+                </button>
                 <button class="settings-btn" title="Settings">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="3"/>
@@ -538,7 +553,7 @@
                       Loading...
                     </div>
                     <div class="user-actions">
-                      <button class="action-btn" title="Send PM">💬</button>
+                      <button class="action-btn" title="Send PM" @click="openUserPM(user.username)">💬</button>
                       <button class="action-btn" title="View Profile" @click="openUserProfile(user.username)">👤</button>
                     </div>
                   </div>
@@ -839,6 +854,7 @@
   <script src="novita-api.js"></script>
   <script src="auth0-service.js"></script>
   <script src="user-menu.js"></script>
+  <script src="csrf-parser.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

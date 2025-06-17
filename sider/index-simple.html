@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup-simple.css">
+</head>
+<body>
+  <div id="app">
+    <div class="simple-interface">
+      <div class="header">
+        <h1>WebCammerPlus</h1>
+        <div class="status" id="status">Ready</div>
+      </div>
+      
+      <div class="content">
+        <div class="api-section">
+          <h2>API Interface</h2>
+          <div class="api-buttons">
+            <button id="debugTabBtn">Debug Tab</button>
+            <button id="injectContentScriptBtn">Inject Content Script</button>
+            <button id="testStatusBtn">Test Status</button>
+            <button id="testConnectionBtn">Test Connection</button>
+            <button id="sendTestMessageBtn">Send Message</button>
+          </div>
+          
+          <div class="message-input">
+            <input type="text" id="messageInput" placeholder="Enter message..." />
+            <button id="sendCustomMessageBtn">Send</button>
+          </div>
+        </div>
+        
+        <div class="results-section">
+          <h3>Results</h3>
+          <div id="results"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup-simple.js"></script>
+</body>
+</html>

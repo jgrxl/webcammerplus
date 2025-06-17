@@ -1350,6 +1350,77 @@ body {
   animation: pulse 2s infinite;
 }
 
+.status-dot.csrf-ready {
+  background: #3b82f6;
+  animation: pulse-blue 2s infinite;
+}
+
+/* Status indicators container */
+.status-indicators {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.csrf-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.csrf-status:hover {
+  opacity: 1;
+}
+
+/* Test API button */
+.test-api-btn, .test-chat-btn, .test-rest-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.test-api-btn:hover, .test-chat-btn:hover, .test-rest-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.test-chat-btn {
+  background: #10b981;
+}
+
+.test-chat-btn:hover {
+  background: #059669;
+}
+
+.test-rest-btn {
+  background: #8b5cf6;
+}
+
+.test-rest-btn:hover {
+  background: #7c3aed;
+}
+
+@keyframes pulse-blue {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
@@ -2110,6 +2181,7 @@ body {
   transition: transform 0.2s;
   min-height: 40px;
   gap: 12px;
+  position: relative;
 }
 
 .user-item:hover {
@@ -2160,8 +2232,7 @@ body {
   flex-direction: column;
   gap: 1px;
   font-size: 10px;
-  align-items: flex-end;
-  text-align: right;
+  padding-right: 8px;
 }
 
 .stat-line {
@@ -2184,6 +2255,7 @@ body {
   flex-direction: row;
   gap: 4px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .action-btn {

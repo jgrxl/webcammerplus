@@ -6,7 +6,9 @@
     "build": "node build.js",
     "dev": "node build.js --watch",
     "serve": "vite",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "extension": "echo '🚀 Load as Chrome extension:' && echo '1. Chrome → Extensions → Developer mode ON' && echo '2. Load unpacked → Select this folder' && echo '3. Navigate to chaturbate.com' && echo '4. Look for 🤖 icon (top-right)' && echo '5. Console: webcammerplus.getStatus()'",
+    "test-dev": "open dev-test.html"
   },
   "dependencies": {
     "@auth0/auth0-spa-js": "^2.1.3",

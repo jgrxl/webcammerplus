@@ -1,9 +1,30 @@
 {
   "manifest_version": 3,
-  "name": "Sider AI Clone",
+  "name": "WebCammerPlus",
   "version": "1.0.0",
-  "description": "AI assistant for webpage analysis",
+  "description": "AI-powered assistant for Chaturbate with real-time analytics",
   "action": {
-    "default_popup": "index.html"
-  }
+    "default_popup": "index-simple.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chaturbate.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://chaturbate.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["csrf-parser.js", "page-injector.js"],
+      "matches": ["https://chaturbate.com/*"]
+    }
+  ]
 }

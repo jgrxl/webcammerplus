@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebCammerPlus Dev Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+    .success { background: #d4edda; border: 1px solid #c3e6cb; }
+    .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    .warning { background: #fff3cd; border: 1px solid #ffeaa7; }
+    button { margin: 5px; padding: 10px 15px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>🧪 WebCammerPlus Development Test</h1>
+  
+  <div class="warning status">
+    <strong>⚠️ Dev Environment Limitations:</strong><br>
+    • No real Chaturbate cookies available<br>
+    • CSRF token simulation only<br>
+    • API calls will fail (expected behavior)<br>
+    • Load as Chrome extension for full functionality
+  </div>
+
+  <h2>🔐 CSRF Parser Status</h2>
+  <div id="csrf-status" class="status">Loading...</div>
+  
+  <h2>🧪 Test Functions</h2>
+  <button onclick="testCSRFExtraction()">Extract CSRF Token</button>
+  <button onclick="testAPICall()">Test API Call (Will Fail)</button>
+  <button onclick="simulateSuccess()">Simulate Success Response</button>
+  
+  <h2>📊 Test Results</h2>
+  <pre id="results">Waiting for tests...</pre>
+
+  <h2>🚀 Production Setup</h2>
+  <div class="warning status">
+    <strong>For Real Testing:</strong><br>
+    1. Build extension: <code>npm run build</code><br>
+    2. Chrome → Extensions → Load unpacked → Select build folder<br>
+    3. Navigate to chaturbate.com<br>
+    4. Open console → Use <code>webcammerplus</code> commands
+  </div>
+
+  <script src="csrf-parser.js"></script>
+  <script>
+    // Mock some Chaturbate environment for testing
+    document.cookie = "csrftoken=DEV_TOKEN_FOR_TESTING; path=/";
+    
+    let results = [];
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      results.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+      updateResults();
+    }
+    
+    function updateResults() {
+      document.getElementById('results').textContent = results.join('\\n');
+    }
+    
+    function updateStatus() {
+      const statusDiv = document.getElementById('csrf-status');
+      
+      if (window.csrfParser) {
+        const info = window.csrfParser.getTokenInfo();
+        statusDiv.className = 'status success';
+        statusDiv.innerHTML = `
+          <strong>✅ CSRF Parser Loaded</strong><br>
+          Token Available: ${info.hasToken ? 'Yes' : 'No'}<br>
+          Token Preview: ${info.tokenPreview || 'None'}<br>
+          Last Refresh: ${info.lastRefresh}<br>
+          Refresh Active: ${info.isRefreshActive ? 'Yes' : 'No'}
+        `;
+      } else {
+        statusDiv.className = 'status error';
+        statusDiv.innerHTML = '<strong>❌ CSRF Parser Not Available</strong>';
+      }
+    }
+    
+    function testCSRFExtraction() {
+      log('Testing CSRF token extraction...');
+      
+      if (window.csrfParser) {
+        const token = window.csrfParser.getCurrentToken();
+        if (token) {
+          log(`✅ Token extracted: ${token.substring(0, 10)}...`, 'success');
+        } else {
+          log('❌ No token found', 'error');
+        }
+      } else {
+        log('❌ CSRF Parser not available', 'error');
+      }
+    }
+    
+    async function testAPICall() {
+      log('Testing API call (expected to fail in dev)...');
+      
+      if (window.csrfParser) {
+        try {
+          const response = await window.csrfParser.makeAuthenticatedRequest('/test', {
+            method: 'POST',
+            body: 'test=data'
+          });
+          log('✅ API call succeeded (unexpected!)', 'success');
+        } catch (error) {
+          log(`❌ API call failed as expected: ${error.message}`, 'warning');
+        }
+      } else {
+        log('❌ CSRF Parser not available', 'error');
+      }
+    }
+    
+    function simulateSuccess() {
+      log('Simulating successful response...');
+      
+      const mockResponse = {
+        status: "ok",
+        message: {
+          message: "Hello from dev environment!",
+          from_user: {
+            username: "dev_user",
+            is_broadcaster: true
+          }
+        }
+      };
+      
+      log(`✅ Mock response: ${JSON.stringify(mockResponse, null, 2)}`, 'success');
+    }
+    
+    // Initialize when page loads
+    setTimeout(() => {
+      updateStatus();
+      log('🚀 Development test page loaded');
+      log('💡 This simulates extension functionality in dev environment');
+      log('🔗 For real testing, load as Chrome extension on chaturbate.com');
+    }, 500);
+    
+    // Update status every few seconds
+    setInterval(updateStatus, 3000);
+  </script>
+</body>
+</html>
