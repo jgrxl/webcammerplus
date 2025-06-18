@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Plans - WebCammer+</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .pricing-card.popular {
+            border: 3px solid #667eea;
+            transform: scale(1.05);
+        }
+        
+        .popular-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #667eea;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .plan-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .plan-price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .plan-price .currency {
+            font-size: 1.5rem;
+        }
+        
+        .plan-cycle {
+            color: #718096;
+            margin-bottom: 30px;
+        }
+        
+        .plan-features {
+            list-style: none;
+            margin-bottom: 40px;
+        }
+        
+        .plan-features li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .check-icon {
+            width: 20px;
+            height: 20px;
+            background: #48bb78;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+        
+        .user-info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: block;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            background: #c6f6d5;
+            color: #276749;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .pricing-card.popular {
+                transform: none;
+            }
+            
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Choose Your Plan</h1>
+            <p>Unlock the full power of WebCammer+ with our flexible subscription plans</p>
+        </div>
+        
+        <div id="userInfo" class="user-info" style="display: none;">
+            <img id="userAvatar" class="user-avatar" src="" alt="User Avatar">
+            <h3 id="userName">Loading...</h3>
+            <p id="userEmail"></p>
+        </div>
+        
+        <div id="messages"></div>
+        
+        <div class="pricing-grid">
+            <!-- Free Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Free</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>0
+                </div>
+                <div class="plan-cycle">Forever free</div>
+                
+                <ul class="plan-features">
+                    <li><span class="check-icon">✓</span> 100 translations/month</li>
+                    <li><span class="check-icon">✓</span> 50 AI replies/month</li>
+                    <li><span class="check-icon">✓</span> 25 text generations/month</li>
+                    <li><span class="check-icon">✓</span> Basic analytics (7 days)</li>
+                    <li><span class="check-icon">✓</span> Standard support</li>
+                </ul>
+                
+                <button class="btn btn-secondary" disabled>Current Plan</button>
+            </div>
+            
+            <!-- Pro Plan -->
+            <div class="pricing-card popular">
+                <div class="popular-badge">Most Popular</div>
+                <div class="plan-name">Pro</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>9.99
+                </div>
+                <div class="plan-cycle">per month</div>
+                
+                <ul class="plan-features">
+                    <li><span class="check-icon">✓</span> 2,000 translations/month</li>
+                    <li><span class="check-icon">✓</span> 1,000 AI replies/month</li>
+                    <li><span class="check-icon">✓</span> 500 text generations/month</li>
+                    <li><span class="check-icon">✓</span> Advanced analytics (30 days)</li>
+                    <li><span class="check-icon">✓</span> Priority support</li>
+                    <li><span class="check-icon">✓</span> Custom styles</li>
+                    <li><span class="check-icon">✓</span> Batch operations</li>
+                </ul>
+                
+                <button class="btn btn-primary" onclick="subscribe('pro', 'monthly')">
+                    Upgrade to Pro
+                </button>
+            </div>
+            
+            <!-- Max Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Max</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>29.99
+                </div>
+                <div class="plan-cycle">per month</div>
+                
+                <ul class="plan-features">
+                    <li><span class="check-icon">✓</span> Unlimited translations</li>
+                    <li><span class="check-icon">✓</span> Unlimited AI replies</li>
+                    <li><span class="check-icon">✓</span> Unlimited text generations</li>
+                    <li><span class="check-icon">✓</span> Full analytics (365 days)</li>
+                    <li><span class="check-icon">✓</span> VIP support</li>
+                    <li><span class="check-icon">✓</span> All custom features</li>
+                    <li><span class="check-icon">✓</span> API access</li>
+                    <li><span class="check-icon">✓</span> White-label options</li>
+                </ul>
+                
+                <button class="btn btn-primary" onclick="subscribe('max', 'monthly')">
+                    Upgrade to Max
+                </button>
+            </div>
+        </div>
+        
+        <div style="text-align: center; color: white;">
+            <p>All plans include a 7-day free trial • Cancel anytime • Secure payments with Stripe</p>
+        </div>
+    </div>
+    
+    <script src="js/core/auth0-service.js"></script>
+    <script src="js/core/novita-api.js"></script>
+    <script>
+        class SubscriptionManager {
+            constructor() {
+                this.api = new WebCammerAPI();
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    await this.loadUserInfo();
+                } catch (error) {
+                    console.error('Failed to load user info:', error);
+                    this.showError('Please log in to view subscription plans');
+                }
+            }
+            
+            async loadUserInfo() {
+                try {
+                    const auth0Service = await getAuth0Service();
+                    
+                    if (!auth0Service.isAuthenticated) {
+                        // Redirect to login
+                        await auth0Service.login();
+                        return;
+                    }
+                    
+                    const user = await auth0Service.getUser();
+                    this.displayUserInfo(user);
+                    
+                } catch (error) {
+                    console.error('User info error:', error);
+                    throw error;
+                }
+            }
+            
+            displayUserInfo(user) {
+                const userInfo = document.getElementById('userInfo');
+                const userAvatar = document.getElementById('userAvatar');
+                const userName = document.getElementById('userName');
+                const userEmail = document.getElementById('userEmail');
+                
+                if (user.picture) {
+                    userAvatar.src = user.picture;
+                }
+                
+                userName.textContent = user.name || 'User';
+                userEmail.textContent = user.email || '';
+                
+                userInfo.style.display = 'block';
+            }
+            
+            showError(message) {
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = `<div class="error">${message}</div>`;
+            }
+            
+            showSuccess(message) {
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = `<div class="success">${message}</div>`;
+            }
+        }
+        
+        // Global subscription function
+        async function subscribe(tier, cycle) {
+            try {
+                const api = new WebCammerAPI();
+                
+                const response = await fetch('/api/v1/subscription/checkout', {
+                    method: 'POST',
+                    headers: await api.getAuthHeaders(),
+                    body: JSON.stringify({
+                        tier: tier,
+                        billing_cycle: cycle,
+                        success_url: window.location.origin + '/pages/profile.html?success=true',
+                        cancel_url: window.location.href + '?cancelled=true'
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create checkout session');
+                }
+                
+                const data = await response.json();
+                
+                // Redirect to Stripe Checkout
+                window.location.href = data.checkout_url;
+                
+            } catch (error) {
+                console.error('Subscription error:', error);
+                
+                // Show user-friendly error
+                const manager = new SubscriptionManager();
+                if (error.message.includes('401')) {
+                    manager.showError('Please log in to subscribe');
+                } else if (error.message.includes('already has an active subscription')) {
+                    manager.showError('You already have an active subscription. Visit your profile to manage it.');
+                } else {
+                    manager.showError('Failed to start subscription. Please try again.');
+                }
+            }
+        }
+        
+        // Handle URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const manager = new SubscriptionManager();
+        
+        if (urlParams.get('cancelled') === 'true') {
+            manager.showError('Subscription cancelled. You can try again anytime.');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            new SubscriptionManager();
+        });
+    </script>
+</body>
+</html>

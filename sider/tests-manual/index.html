@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebCammerPlus Test Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .test-card h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .test-card p {
+            color: #666;
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+        .test-card a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .test-card a:hover {
+            background-color: #0056b3;
+        }
+        .category {
+            display: inline-block;
+            padding: 4px 8px;
+            background-color: #e9ecef;
+            color: #495057;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .category.api { background-color: #d4edda; color: #155724; }
+        .category.ui { background-color: #cce5ff; color: #004085; }
+        .category.integration { background-color: #f8d7da; color: #721c24; }
+        .category.analytics { background-color: #fff3cd; color: #856404; }
+        .category.utils { background-color: #e2e3e5; color: #383d41; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebCammerPlus Test Dashboard</h1>
+        <p>This dashboard provides quick access to all test files for the WebCammerPlus browser extension.</p>
+        
+        <div class="test-grid">
+            <div class="test-card">
+                <span class="category api">API Testing</span>
+                <h3>All Frontend API Calls</h3>
+                <p>Comprehensive test suite for all frontend API endpoints including authentication, subscriptions, translations, and analytics.</p>
+                <a href="api/test-all-frontend-api-calls.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category analytics">Analytics</span>
+                <h3>Analytics API Test</h3>
+                <p>Test the analytics API endpoints for data retrieval, aggregation, and real-time metrics from InfluxDB.</p>
+                <a href="analytics/test-analytics-api.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category analytics">Analytics</span>
+                <h3>Analytics UI Test</h3>
+                <p>Test the analytics user interface components, charts, and data visualization features.</p>
+                <a href="analytics/test-analytics.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category integration">Integration</span>
+                <h3>Full Integration Test</h3>
+                <p>End-to-end integration test covering authentication flow, API calls, WebSocket connections, and UI components.</p>
+                <a href="integration/test-integration.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category api">API Testing</span>
+                <h3>Platform Status Test</h3>
+                <p>Verify platform status endpoints and real-time status updates for connected services.</p>
+                <a href="api/test-platform-status.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category ui">UI Components</span>
+                <h3>Popup External Test</h3>
+                <p>Test the browser extension popup functionality with external API connections and authentication.</p>
+                <a href="components/test-popup-external.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category integration">Integration</span>
+                <h3>Popup Integration Test</h3>
+                <p>Test the popup component integration with backend services, including Auth0 and Stripe.</p>
+                <a href="integration/test-popup-integration.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category ui">UI Components</span>
+                <h3>Basic Popup Test</h3>
+                <p>Test basic popup functionality, UI elements, and local state management without external dependencies.</p>
+                <a href="components/test-popup.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category ui">UI Components</span>
+                <h3>Refactored Components Test</h3>
+                <p>Test the refactored Vue.js components and modular architecture improvements.</p>
+                <a href="components/test-refactor.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category ui">UI Components</span>
+                <h3>Tippers Tab Test</h3>
+                <p>Test the tippers tab functionality including real-time updates, sorting, and filtering features.</p>
+                <a href="components/test-tippers-tab.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category utils">Debug Utilities</span>
+                <h3>Debug Popup</h3>
+                <p>Debug utility for testing Vue.js integration and basic popup functionality in the browser extension context.</p>
+                <a href="utils/debug-popup.html">Open Test</a>
+            </div>
+
+            <div class="test-card">
+                <span class="category ui">UI Components</span>
+                <h3>User Menu Demo</h3>
+                <p>Demonstration and test of the user menu component with profile, settings, and logout functionality.</p>
+                <a href="components/user-menu-demo.html">Open Test</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

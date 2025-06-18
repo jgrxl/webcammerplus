@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: monospace;
+      background: #f0f0f0;
+    }
+    .test {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+    .success { border-color: green; background: #e8f5e8; }
+    .error { border-color: red; background: #ffe8e8; }
+    .info { border-color: blue; background: #e8f0ff; }
+  </style>
+</head>
+<body>
+  <h2>Vue Debug Test</h2>
+  
+  <div id="test1" class="test">
+    <strong>Test 1:</strong> Check if Vue script exists
+    <div id="result1">Testing...</div>
+  </div>
+  
+  <div id="test2" class="test">
+    <strong>Test 2:</strong> Try loading vue.js
+    <div id="result2">Testing...</div>
+  </div>
+  
+  <div id="test3" class="test">
+    <strong>Test 3:</strong> Check Vue global after load
+    <div id="result3">Testing...</div>
+  </div>
+  
+  <div id="test4" class="test">
+    <strong>Test 4:</strong> Try alternative paths
+    <div id="result4">Testing...</div>
+  </div>
+  
+  <div id="errorLog" class="test error" style="display: none;">
+    <strong>Errors:</strong>
+    <div id="errors"></div>
+  </div>
+
+  <script>
+    // Capture all errors
+    const errors = [];
+    window.onerror = function(msg, url, line, col, error) {
+      errors.push(`Error: ${msg} at ${url}:${line}:${col}`);
+      updateErrorLog();
+    };
+
+    function updateErrorLog() {
+      const errorDiv = document.getElementById('errorLog');
+      const errorsDiv = document.getElementById('errors');
+      if (errors.length > 0) {
+        errorDiv.style.display = 'block';
+        errorsDiv.innerHTML = errors.map(e => `<div>${e}</div>`).join('');
+      }
+    }
+
+    function setResult(testId, message, success = null) {
+      const element = document.getElementById(`result${testId}`);
+      const container = document.getElementById(`test${testId}`);
+      element.innerHTML = message;
+      if (success === true) {
+        container.className = 'test success';
+      } else if (success === false) {
+        container.className = 'test error';
+      } else {
+        container.className = 'test info';
+      }
+    }
+
+    // Test 1: Check if vue.js file exists by trying to fetch it
+    fetch('vue.js')
+      .then(response => {
+        if (response.ok) {
+          setResult(1, `✅ vue.js exists (${response.status} ${response.statusText})`, true);
+        } else {
+          setResult(1, `❌ vue.js not found (${response.status} ${response.statusText})`, false);
+        }
+      })
+      .catch(error => {
+        setResult(1, `❌ Failed to check vue.js: ${error.message}`, false);
+      });
+
+    // Test 2: Try loading vue.js script
+    const script = document.createElement('script');
+    script.src = 'vue.js';
+    script.onload = function() {
+      setResult(2, '✅ vue.js script loaded successfully', true);
+      
+      // Test 3: Check if Vue global is available
+      setTimeout(() => {
+        if (typeof Vue !== 'undefined') {
+          setResult(3, `✅ Vue global available: ${typeof Vue}`, true);
+          
+          // Try to use Vue
+          try {
+            const { createApp } = Vue;
+            setResult(3, `✅ Vue working! createApp: ${typeof createApp}`, true);
+          } catch (e) {
+            setResult(3, `❌ Vue loaded but createApp failed: ${e.message}`, false);
+          }
+        } else {
+          setResult(3, '❌ Vue global not available after script load', false);
+        }
+      }, 100);
+    };
+    
+    script.onerror = function(e) {
+      setResult(2, `❌ Failed to load vue.js script: ${e.message || 'Unknown error'}`, false);
+      
+      // Test 4: Try alternative paths
+      const alternatives = [
+        'node_modules/vue/dist/vue.global.js',
+        './vue.js',
+        '/vue.js'
+      ];
+      
+      let altResults = [];
+      alternatives.forEach((path, index) => {
+        fetch(path)
+          .then(response => {
+            altResults.push(`${path}: ${response.status} ${response.statusText}`);
+          })
+          .catch(error => {
+            altResults.push(`${path}: ${error.message}`);
+          })
+          .finally(() => {
+            if (altResults.length === alternatives.length) {
+              setResult(4, altResults.join('<br>'), false);
+            }
+          });
+      });
+    };
+    
+    document.head.appendChild(script);
+
+    // Additional debugging info
+    setTimeout(() => {
+      const debugInfo = [
+        `Location: ${window.location.href}`,
+        `Base URI: ${document.baseURI}`,
+        `Document ready state: ${document.readyState}`,
+        `Scripts in head: ${document.head.querySelectorAll('script').length}`,
+        `Current scripts: ${Array.from(document.querySelectorAll('script')).map(s => s.src || 'inline').join(', ')}`
+      ];
+      
+      const debugDiv = document.createElement('div');
+      debugDiv.className = 'test info';
+      debugDiv.innerHTML = `<strong>Debug Info:</strong><br>${debugInfo.join('<br>')}`;
+      document.body.appendChild(debugDiv);
+      
+      updateErrorLog();
+    }, 1000);
+  </script>
+</body>
+</html>

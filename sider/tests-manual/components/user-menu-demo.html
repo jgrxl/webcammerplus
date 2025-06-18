@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Menu Demo - WebCammer+</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .demo-content {
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+        }
+        
+        .demo-content h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .demo-content p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+        
+        .demo-features {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            text-align: left;
+        }
+        
+        .demo-features h3 {
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        
+        .demo-features ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .demo-features li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .demo-features li::before {
+            content: "✅";
+            font-size: 1.1rem;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-content">
+        <h1>WebCammer+</h1>
+        <p>Advanced AI Assistant with Subscription Management</p>
+        
+        <div class="demo-features">
+            <h3>🎯 User Menu Features</h3>
+            <ul>
+                <li>Account Settings & Profile Information</li>
+                <li>Subscription Type Display (Free, Pro, Max)</li>
+                <li>Usage Statistics & Limits</li>
+                <li>Billing Management Portal</li>
+                <li>Plan Upgrade Options</li>
+                <li>API Documentation Access</li>
+                <li>Secure Sign In/Out</li>
+            </ul>
+        </div>
+        
+        <div class="instructions">
+            <strong>👆 Look at the top right corner!</strong><br>
+            Click the user menu to access account settings, subscription info, and usage statistics.
+            <br><br>
+            <strong>Try these features:</strong><br>
+            • Click "Subscription Settings" to see your current plan<br>
+            • View "Usage & Limits" for detailed analytics<br>
+            • Access "Account Settings" for profile management
+        </div>
+    </div>
+
+    <!-- Include all required scripts -->
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+    <script src="novita-api.js"></script>
+    <script src="auth0-service.js"></script>
+    <script src="user-menu.js"></script>
+</body>
+</html>

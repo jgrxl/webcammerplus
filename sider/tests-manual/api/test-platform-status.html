@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Platform Status Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .online { background-color: #d4edda; color: #155724; }
+        .offline { background-color: #f8d7da; color: #721c24; }
+        .checking { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>Platform Status Check Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkServices() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Checking all services...</h2>';
+            
+            const services = [
+                {
+                    name: 'Backend API',
+                    url: 'http://localhost:5000/api/v1',
+                    check: async (url) => {
+                        const resp = await fetch(url);
+                        const data = await resp.json();
+                        return { ok: resp.ok && data.status === 'ok', data };
+                    }
+                },
+                {
+                    name: 'Frontend',
+                    url: 'http://localhost:5173',
+                    check: async (url) => {
+                        const resp = await fetch(url);
+                        return { ok: resp.ok };
+                    }
+                },
+                {
+                    name: 'InfluxDB',
+                    url: 'http://localhost:8086/health',
+                    check: async (url) => {
+                        const resp = await fetch(url);
+                        const data = await resp.json();
+                        return { ok: resp.ok && data.status === 'pass', data };
+                    }
+                },
+                {
+                    name: 'API Docs',
+                    url: 'http://localhost:5000/docs/',
+                    check: async (url) => {
+                        const resp = await fetch(url);
+                        return { ok: resp.ok };
+                    }
+                },
+                {
+                    name: 'Pricing Endpoint (Config Test)',
+                    url: 'http://localhost:5000/api/v1/auth/pricing',
+                    check: async (url) => {
+                        const resp = await fetch(url);
+                        return { ok: resp.ok };
+                    }
+                }
+            ];
+            
+            let html = '<h2>Service Status Results:</h2>';
+            
+            for (const service of services) {
+                try {
+                    console.log(`Checking ${service.name}...`);
+                    const result = await service.check(service.url);
+                    const status = result.ok ? 'online' : 'offline';
+                    const color = result.ok ? '🟢' : '🔴';
+                    
+                    html += `
+                        <div class="status ${status}">
+                            ${color} <strong>${service.name}</strong>: ${status.toUpperCase()}
+                            <br><small>URL: ${service.url}</small>
+                            ${result.data ? `<br><small>Response: ${JSON.stringify(result.data)}</small>` : ''}
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error(`Error checking ${service.name}:`, error);
+                    html += `
+                        <div class="status offline">
+                            🔴 <strong>${service.name}</strong>: OFFLINE (Connection Failed)
+                            <br><small>URL: ${service.url}</small>
+                            <br><small>Error: ${error.message}</small>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Summary
+            const totalServices = services.length;
+            const onlineCount = (html.match(/status online/g) || []).length;
+            const healthPercentage = Math.round((onlineCount / totalServices) * 100);
+            
+            html = `
+                <div class="status ${healthPercentage === 100 ? 'online' : healthPercentage > 50 ? 'checking' : 'offline'}">
+                    <h3>Overall Health: ${healthPercentage}%</h3>
+                    <p>${onlineCount} of ${totalServices} services are online</p>
+                </div>
+            ` + html;
+            
+            results.innerHTML = html;
+        }
+        
+        // Run check on load
+        checkServices();
+        
+        // Add refresh button
+        const button = document.createElement('button');
+        button.textContent = 'Refresh Status';
+        button.onclick = checkServices;
+        button.style.marginTop = '20px';
+        document.body.appendChild(button);
+    </script>
+</body>
+</html>

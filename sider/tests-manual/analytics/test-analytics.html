@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics View Test - WebCammer+</title>
+  
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3.4.0/dist/vue.global.js"></script>
+  
+  <!-- Basic styles -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f8fafc;
+      color: #1f2937;
+    }
+    
+    #app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .test-header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .test-header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .test-header p {
+      font-size: 14px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    
+    .test-controls {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 24px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .test-controls button {
+      padding: 8px 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .test-controls button:hover {
+      background: #5a67d8;
+    }
+    
+    .test-controls button:active {
+      transform: scale(0.95);
+    }
+    
+    .test-info {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    .analytics-container {
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Include component styles */
+    .analytics-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 20px;
+      background: #f8fafc;
+      overflow-y: auto;
+    }
+    
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .analytics-header h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+    }
+    
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .last-refresh {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    .refresh-btn {
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .refresh-btn:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    
+    .refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      color: #64748b;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .analytics-dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-icon {
+      font-size: 32px;
+      width: 56px;
+      height: 56px;
+      background: #f1f5f9;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .stat-content {
+      flex: 1;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1f2937;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    
+    .stat-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 20px;
+    }
+    
+    .stat-trend.up {
+      color: #10b981;
+      background: #d1fae5;
+    }
+    
+    .stat-trend.down {
+      color: #ef4444;
+      background: #fee2e2;
+    }
+    
+    .stat-trend.neutral {
+      color: #64748b;
+      background: #f1f5f9;
+    }
+    
+    .trend-icon {
+      font-size: 14px;
+    }
+    
+    /* Analytics Grid */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    
+    .analytics-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+    
+    .analytics-card.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+    }
+    
+    .activity-count {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    /* Recent Activity */
+    .activity-feed {
+      padding: 16px 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    
+    .activity-item:hover {
+      background: #f1f5f9;
+    }
+    
+    .activity-icon {
+      font-size: 20px;
+      width: 32px;
+      height: 32px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .activity-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .activity-description {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    
+    .activity-time {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    
+    /* Top Tippers */
+    .tipper-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .tab-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn:hover {
+      background: #f8fafc;
+      color: #334155;
+    }
+    
+    .tab-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    
+    .tippers-content {
+      padding: 16px 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .tippers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .tipper-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .tipper-item:hover {
+      background: #f1f5f9;
+      transform: translateX(4px);
+    }
+    
+    .tipper-rank {
+      width: 28px;
+      height: 28px;
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    
+    .tipper-badge {
+      font-size: 20px;
+    }
+    
+    .tipper-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .tipper-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .tipper-amount {
+      font-size: 12px;
+      color: #10b981;
+      font-weight: 500;
+    }
+    
+    /* Performance Charts */
+    .chart-controls {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .metric-select,
+    .period-select {
+      padding: 6px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      color: #334155;
+      cursor: pointer;
+    }
+    
+    .chart-content {
+      padding: 40px;
+    }
+    
+    .chart-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+      background: #f8fafc;
+      border: 2px dashed #e2e8f0;
+      border-radius: 12px;
+    }
+    
+    .placeholder-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .placeholder-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #334155;
+      margin: 0 0 8px 0;
+    }
+    
+    .placeholder-desc {
+      font-size: 14px;
+      color: #64748b;
+      margin: 0;
+    }
+    
+    /* States */
+    .empty-state,
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: #64748b;
+      font-style: italic;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .analytics-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .analytics-content {
+        padding: 16px;
+      }
+      
+      .tipper-tabs {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="test-header">
+      <h1>Analytics View Test</h1>
+      <p>Testing the Analytics component with mock data</p>
+    </div>
+    
+    <div class="test-controls">
+      <button @click="addRandomEvent">Add Random Event</button>
+      <button @click="addRandomTip">Add Random Tip</button>
+      <button @click="addRandomUser">Add Random User</button>
+      <button @click="updateStats">Update Stats</button>
+      <button @click="clearAllData">Clear All Data</button>
+      <div class="test-info">
+        Online Users: {{ onlineUsersCount }} | Events: {{ eventsCount }} | Top Tippers: {{ topTippersCount }}
+      </div>
+    </div>
+    
+    <div class="analytics-container">
+      <analytics-view></analytics-view>
+    </div>
+  </div>
+
+  <!-- Load Services -->
+  <script src="services/StateManager.js"></script>
+  <script src="services/ApiService.js"></script>
+  
+  <!-- Load Modules -->
+  <script src="modules/AnalyticsModule.js"></script>
+  
+  <!-- Load Component System -->
+  <script src="components/component-loader.js"></script>
+  
+  <!-- Load Analytics Component -->
+  <script src="components/analytics/AnalyticsView.js"></script>
+  
+  <!-- Test App Script -->
+  <script>
+    // Mock API Service responses
+    const originalApiService = window.apiService;
+    
+    // Override API methods with mock data
+    window.apiService.getTippers = async function(days, limit) {
+      const mockTippers = [];
+      const usernames = ['BigSpender', 'GenerousFan', 'SuperTipper', 'MegaFan', 'TopSupporter', 
+                        'DiamondUser', 'GoldMember', 'PlatinumVIP', 'EliteViewer', 'ProSupporter'];
+      
+      for (let i = 0; i < Math.min(limit, 10); i++) {
+        mockTippers.push({
+          username: usernames[i] || `User${i + 1}`,
+          total_tokens: Math.floor(Math.random() * 10000) + 1000
+        });
+      }
+      
+      // Sort by tokens
+      mockTippers.sort((a, b) => b.total_tokens - a.total_tokens);
+      
+      return { success: true, tippers: mockTippers };
+    };
+    
+    window.apiService.getTotalTips = async function(days) {
+      const baseTokens = 15000;
+      const variation = Math.floor(Math.random() * 5000);
+      return { 
+        success: true, 
+        total_tokens: baseTokens + variation 
+      };
+    };
+    
+    // Create test app
+    const { createApp } = Vue;
+    
+    const TestApp = {
+      data() {
+        return {
+          onlineUsersCount: 0,
+          eventsCount: 0,
+          topTippersCount: 0
+        };
+      },
+      
+      mounted() {
+        // Initialize with some test data
+        this.initializeTestData();
+        
+        // Update counters
+        setInterval(() => {
+          this.updateCounters();
+        }, 1000);
+      },
+      
+      methods: {
+        initializeTestData() {
+          // Add some initial online users
+          const initialUsers = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Frank', 'Grace'];
+          initialUsers.forEach(username => {
+            window.stateManager.addOnlineUser(username, {
+              status: Math.random() > 0.7 ? 'Premium' : 'Regular'
+            });
+          });
+          
+          // Add some initial events
+          this.addRandomEvent();
+          this.addRandomEvent();
+          this.addRandomEvent();
+          
+          // Add a few tips
+          this.addRandomTip();
+          this.addRandomTip();
+          
+          this.updateCounters();
+        },
+        
+        addRandomEvent() {
+          const eventTypes = [
+            { type: 'user_join', message: 'joined the room' },
+            { type: 'private_message', message: 'sent a private message' },
+            { type: 'media_purchase', message: 'purchased media' }
+          ];
+          
+          const randomEvent = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+          const randomUser = `User${Math.floor(Math.random() * 100)}`;
+          
+          window.stateManager.addEvent(
+            randomEvent.type,
+            randomEvent.message,
+            new Date(),
+            randomUser
+          );
+          
+          this.updateCounters();
+        },
+        
+        addRandomTip() {
+          const amounts = [10, 25, 50, 100, 200, 500, 1000];
+          const amount = amounts[Math.floor(Math.random() * amounts.length)];
+          const username = `Tipper${Math.floor(Math.random() * 50)}`;
+          
+          window.stateManager.addEvent(
+            'tip',
+            `tipped ${amount} tokens`,
+            new Date(),
+            username,
+            { amount }
+          );
+          
+          this.updateCounters();
+        },
+        
+        addRandomUser() {
+          const username = `NewUser${Math.floor(Math.random() * 1000)}`;
+          window.stateManager.addOnlineUser(username, {
+            status: Math.random() > 0.8 ? 'Premium' : 'Regular'
+          });
+          
+          window.stateManager.addEvent(
+            'user_join',
+            'joined the room',
+            new Date(),
+            username
+          );
+          
+          this.updateCounters();
+        },
+        
+        updateStats() {
+          // Force analytics module to refresh
+          window.analyticsModule.loadDashboardStats();
+        },
+        
+        clearAllData() {
+          // Clear all test data
+          window.stateManager.clearEvents();
+          window.stateManager.state.onlineUsers.clear();
+          
+          // Reinitialize
+          this.initializeTestData();
+        },
+        
+        updateCounters() {
+          this.onlineUsersCount = window.stateManager.getOnlineUsersCount();
+          this.eventsCount = window.stateManager.getEvents().length;
+          this.topTippersCount = window.analyticsModule.topTippers.week.length;
+        }
+      }
+    };
+    
+    // Create and mount the app
+    const app = window.componentLoader.createApp(TestApp);
+    app.mount('#app');
+    
+    console.log('Analytics test page loaded! Use the buttons to add test data.');
+  </script>
+</body>
+</html>

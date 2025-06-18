@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebCammer+</title>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/popup.css">
+  
+  <!-- Vue.js -->
+  <script src="lib/vue.js"></script>
+  
+  <!-- Socket.io for WebSocket -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  
+  <!-- Auth0 -->
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Core Services -->
+  <script src="js/core/auth0-service.js"></script>
+  <script src="js/core/novita-api.js"></script>
+  <script src="js/core/user-menu.js"></script>
+  
+  <!-- Component System -->
+  <script src="js/components/component-loader.js"></script>
+  
+  <!-- Common Components -->
+  <script src="js/components/common/AttachButton.js"></script>
+  <script src="js/components/common/UserInfoModal.js"></script>
+  
+  <!-- Sidebar -->
+  <script src="js/components/sidebar/Sidebar.js"></script>
+  
+  <!-- Home Components -->
+  <script src="js/components/home/HomeView.js"></script>
+  <script src="js/components/home/MessagesTab.js"></script>
+  <script src="js/components/home/MessageFilterMenu.js"></script>
+  
+  <!-- Chat Components -->
+  <script src="js/components/chat/ChatView.js"></script>
+  
+  <!-- Main App -->
+  <script src="js/components/App.js"></script>
+  
+  <!-- Initialize App -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Starting modular WebCammer+ app...');
+      
+      if (typeof Vue === 'undefined') {
+        console.error('❌ Vue is not loaded!');
+        return;
+      }
+      
+      // Create and mount the app using component loader
+      const app = window.componentLoader.createApp(window.App);
+      
+      console.log('🔧 Mounting Vue app...');
+      const vueApp = app.mount('#app');
+      window.vueApp = vueApp;
+      console.log('✅ Modular Vue app mounted successfully!');
+      
+      // Set up periodic auth check
+      setInterval(async () => {
+        if (window.vueApp && window.vueApp.checkAuthStatus) {
+          await window.vueApp.checkAuthStatus();
+        }
+      }, 5000);
+    });
+  </script>
+</body>
+</html>
